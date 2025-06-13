@@ -1,4 +1,3 @@
-import { KubernetesManager } from "../types.js";
 import { execSync } from "child_process";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 
@@ -9,6 +8,20 @@ export const kubectlGetSchema = {
   inputSchema: {
     type: "object",
     properties: {
+      subscriptionId: {
+        type: "string",
+        description: "Azure subscription ID for multi-tenant authentication",
+      },
+      resourceGroup: {
+        type: "string",
+        description:
+          "Azure resource group name for multi-tenant authentication",
+      },
+      clusterName: {
+        type: "string",
+        description:
+          "Azure Kubernetes cluster name for multi-tenant authentication",
+      },
       resourceType: {
         type: "string",
         description:
@@ -54,12 +67,17 @@ export const kubectlGetSchema = {
         optional: true,
       },
     },
-    required: ["resourceType"],
+    required: [
+      "subscriptionId",
+      "resourceGroup",
+      "clusterName",
+      "resourceType",
+    ],
   },
 } as const;
 
 export async function kubectlGet(
-  k8sManager: KubernetesManager,
+  kubeconfigPath: string,
   input: {
     resourceType: string;
     name?: string;
@@ -145,7 +163,7 @@ export async function kubectlGet(
     try {
       const result = execSync(command, {
         encoding: "utf8",
-        env: { ...process.env, KUBECONFIG: process.env.KUBECONFIG },
+        env: { ...process.env, KUBECONFIG: kubeconfigPath },
       });
 
       // Format the results for better readability

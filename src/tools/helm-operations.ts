@@ -1,7 +1,12 @@
 import { execSync } from "child_process";
 import { writeFileSync, unlinkSync } from "fs";
 import yaml from "yaml";
-import { HelmInstallOperation, HelmOperation, HelmResponse, HelmUpgradeOperation } from "../models/helm-models.js";
+import {
+  HelmInstallOperation,
+  HelmOperation,
+  HelmResponse,
+  HelmUpgradeOperation,
+} from "../models/helm-models.js";
 
 export const installHelmChartSchema = {
   name: "install_helm_chart",
@@ -9,6 +14,20 @@ export const installHelmChartSchema = {
   inputSchema: {
     type: "object",
     properties: {
+      subscriptionId: {
+        type: "string",
+        description: "Azure subscription ID for multi-tenant authentication",
+      },
+      resourceGroup: {
+        type: "string",
+        description:
+          "Azure resource group name for multi-tenant authentication",
+      },
+      clusterName: {
+        type: "string",
+        description:
+          "Azure Kubernetes cluster name for multi-tenant authentication",
+      },
       name: {
         type: "string",
         description: "Release name",
@@ -32,7 +51,15 @@ export const installHelmChartSchema = {
         additionalProperties: true,
       },
     },
-    required: ["name", "chart", "repo", "namespace"],
+    required: [
+      "subscriptionId",
+      "resourceGroup",
+      "clusterName",
+      "name",
+      "chart",
+      "repo",
+      "namespace",
+    ],
   },
 };
 
@@ -42,6 +69,20 @@ export const upgradeHelmChartSchema = {
   inputSchema: {
     type: "object",
     properties: {
+      subscriptionId: {
+        type: "string",
+        description: "Azure subscription ID for multi-tenant authentication",
+      },
+      resourceGroup: {
+        type: "string",
+        description:
+          "Azure resource group name for multi-tenant authentication",
+      },
+      clusterName: {
+        type: "string",
+        description:
+          "Azure Kubernetes cluster name for multi-tenant authentication",
+      },
       name: {
         type: "string",
         description: "Release name",
@@ -65,7 +106,15 @@ export const upgradeHelmChartSchema = {
         additionalProperties: true,
       },
     },
-    required: ["name", "chart", "repo", "namespace"],
+    required: [
+      "subscriptionId",
+      "resourceGroup",
+      "clusterName",
+      "name",
+      "chart",
+      "repo",
+      "namespace",
+    ],
   },
 };
 
@@ -75,6 +124,20 @@ export const uninstallHelmChartSchema = {
   inputSchema: {
     type: "object",
     properties: {
+      subscriptionId: {
+        type: "string",
+        description: "Azure subscription ID for multi-tenant authentication",
+      },
+      resourceGroup: {
+        type: "string",
+        description:
+          "Azure resource group name for multi-tenant authentication",
+      },
+      clusterName: {
+        type: "string",
+        description:
+          "Azure Kubernetes cluster name for multi-tenant authentication",
+      },
       name: {
         type: "string",
         description: "Release name",
@@ -84,17 +147,26 @@ export const uninstallHelmChartSchema = {
         description: "Kubernetes namespace",
       },
     },
-    required: ["name", "namespace"],
+    required: [
+      "subscriptionId",
+      "resourceGroup",
+      "clusterName",
+      "name",
+      "namespace",
+    ],
   },
 };
 
-const executeHelmCommand = (command: string): string => {
+const executeHelmCommand = (
+  command: string,
+  kubeconfigPath: string
+): string => {
   try {
     // Add a generous timeout of 60 seconds for Helm operations
-    return execSync(command, { 
+    return execSync(command, {
       encoding: "utf8",
       timeout: 60000, // 60 seconds timeout
-      env: { ...process.env, KUBECONFIG: process.env.KUBECONFIG }
+      env: { ...process.env, KUBECONFIG: kubeconfigPath },
     });
   } catch (error: any) {
     throw new Error(`Helm command failed: ${error.message}`);
@@ -107,13 +179,19 @@ const writeValuesFile = (name: string, values: Record<string, any>): string => {
   return filename;
 };
 
-export async function installHelmChart(params: HelmInstallOperation): Promise<{ content: { type: string; text: string }[] }> {
+export async function installHelmChart(
+  params: HelmInstallOperation,
+  kubeconfigPath: string
+): Promise<{ content: { type: string; text: string }[] }> {
   try {
     // Add helm repository if provided
     if (params.repo) {
       const repoName = params.chart.split("/")[0];
-      executeHelmCommand(`helm repo add ${repoName} ${params.repo}`);
-      executeHelmCommand("helm repo update");
+      executeHelmCommand(
+        `helm repo add ${repoName} ${params.repo}`,
+        kubeconfigPath
+      );
+      executeHelmCommand("helm repo update", kubeconfigPath);
     }
 
     let command = `helm install ${params.name} ${params.chart} --namespace ${params.namespace} --create-namespace`;
@@ -124,13 +202,13 @@ export async function installHelmChart(params: HelmInstallOperation): Promise<{ 
       command += ` -f ${valuesFile}`;
 
       try {
-        executeHelmCommand(command);
+        executeHelmCommand(command, kubeconfigPath);
       } finally {
         // Cleanup values file
         unlinkSync(valuesFile);
       }
     } else {
-      executeHelmCommand(command);
+      executeHelmCommand(command, kubeconfigPath);
     }
 
     const response: HelmResponse = {
@@ -151,13 +229,19 @@ export async function installHelmChart(params: HelmInstallOperation): Promise<{ 
   }
 }
 
-export async function upgradeHelmChart(params: HelmUpgradeOperation): Promise<{ content: { type: string; text: string }[] }> {
+export async function upgradeHelmChart(
+  params: HelmUpgradeOperation,
+  kubeconfigPath: string
+): Promise<{ content: { type: string; text: string }[] }> {
   try {
     // Add helm repository if provided
     if (params.repo) {
       const repoName = params.chart.split("/")[0];
-      executeHelmCommand(`helm repo add ${repoName} ${params.repo}`);
-      executeHelmCommand("helm repo update");
+      executeHelmCommand(
+        `helm repo add ${repoName} ${params.repo}`,
+        kubeconfigPath
+      );
+      executeHelmCommand("helm repo update", kubeconfigPath);
     }
 
     let command = `helm upgrade ${params.name} ${params.chart} --namespace ${params.namespace}`;
@@ -168,13 +252,13 @@ export async function upgradeHelmChart(params: HelmUpgradeOperation): Promise<{ 
       command += ` -f ${valuesFile}`;
 
       try {
-        executeHelmCommand(command);
+        executeHelmCommand(command, kubeconfigPath);
       } finally {
         // Cleanup values file
         unlinkSync(valuesFile);
       }
     } else {
-      executeHelmCommand(command);
+      executeHelmCommand(command, kubeconfigPath);
     }
 
     const response: HelmResponse = {
@@ -195,9 +279,15 @@ export async function upgradeHelmChart(params: HelmUpgradeOperation): Promise<{ 
   }
 }
 
-export async function uninstallHelmChart(params: HelmOperation): Promise<{ content: { type: string; text: string }[] }> {
+export async function uninstallHelmChart(
+  params: HelmOperation,
+  kubeconfigPath: string
+): Promise<{ content: { type: string; text: string }[] }> {
   try {
-    executeHelmCommand(`helm uninstall ${params.name} --namespace ${params.namespace}`);
+    executeHelmCommand(
+      `helm uninstall ${params.name} --namespace ${params.namespace}`,
+      kubeconfigPath
+    );
 
     const response: HelmResponse = {
       status: "uninstalled",

@@ -1,5 +1,4 @@
 import { spawn } from "child_process";
-import { z } from "zod";
 import { KubernetesManager } from "../utils/kubernetes-manager.js";
 
 // Use spawn instead of exec because port-forward is a long-running process
@@ -59,13 +58,35 @@ export const PortForwardSchema = {
   inputSchema: {
     type: "object",
     properties: {
+      subscriptionId: {
+        type: "string",
+        description: "Azure subscription ID for multi-tenant authentication",
+      },
+      resourceGroup: {
+        type: "string",
+        description:
+          "Azure resource group name for multi-tenant authentication",
+      },
+      clusterName: {
+        type: "string",
+        description:
+          "Azure Kubernetes cluster name for multi-tenant authentication",
+      },
       resourceType: { type: "string" },
       resourceName: { type: "string" },
       localPort: { type: "number" },
       targetPort: { type: "number" },
       namespace: { type: "string" },
     },
-    required: ["resourceType", "resourceName", "localPort", "targetPort"],
+    required: [
+      "subscriptionId",
+      "resourceGroup",
+      "clusterName",
+      "resourceType",
+      "resourceName",
+      "localPort",
+      "targetPort",
+    ],
   },
 };
 
@@ -121,6 +142,20 @@ export const StopPortForwardSchema = {
   inputSchema: {
     type: "object",
     properties: {
+      subscriptionId: {
+        type: "string",
+        description: "Azure subscription ID for multi-tenant authentication",
+      },
+      resourceGroup: {
+        type: "string",
+        description:
+          "Azure resource group name for multi-tenant authentication",
+      },
+      clusterName: {
+        type: "string",
+        description:
+          "Azure Kubernetes cluster name for multi-tenant authentication",
+      },
       id: { type: "string" },
     },
     required: ["id"],

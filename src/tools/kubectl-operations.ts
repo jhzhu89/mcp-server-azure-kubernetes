@@ -10,6 +10,20 @@ export const explainResourceSchema = {
   inputSchema: {
     type: "object",
     properties: {
+      subscriptionId: {
+        type: "string",
+        description: "Azure subscription ID for multi-tenant authentication",
+      },
+      resourceGroup: {
+        type: "string",
+        description:
+          "Azure resource group name for multi-tenant authentication",
+      },
+      clusterName: {
+        type: "string",
+        description:
+          "Azure Kubernetes cluster name for multi-tenant authentication",
+      },
       resource: {
         type: "string",
         description:
@@ -31,7 +45,7 @@ export const explainResourceSchema = {
         default: "plaintext",
       },
     },
-    required: ["resource"],
+    required: ["subscriptionId", "resourceGroup", "clusterName", "resource"],
   },
 };
 
@@ -41,6 +55,20 @@ export const listApiResourcesSchema = {
   inputSchema: {
     type: "object",
     properties: {
+      subscriptionId: {
+        type: "string",
+        description: "Azure subscription ID for multi-tenant authentication",
+      },
+      resourceGroup: {
+        type: "string",
+        description:
+          "Azure resource group name for multi-tenant authentication",
+      },
+      clusterName: {
+        type: "string",
+        description:
+          "Azure Kubernetes cluster name for multi-tenant authentication",
+      },
       apiGroup: {
         type: "string",
         description: "API group to filter by",
@@ -66,15 +94,22 @@ export const listApiResourcesSchema = {
   },
 };
 
-const executeKubectlCommand = (command: string): string => {
+const executeKubectlCommand = (
+  command: string,
+  kubeconfigPath: string
+): string => {
   try {
-    return execSync(command, { encoding: "utf8", env: { ...process.env, KUBECONFIG: process.env.KUBECONFIG } });
+    return execSync(command, {
+      encoding: "utf8",
+      env: { ...process.env, KUBECONFIG: kubeconfigPath },
+    });
   } catch (error: any) {
     throw new Error(`Kubectl command failed: ${error.message}`);
   }
 };
 
 export async function explainResource(
+  kubeconfigPath: string,
   params: ExplainResourceParams
 ): Promise<{ content: { type: string; text: string }[] }> {
   try {
@@ -94,7 +129,7 @@ export async function explainResource(
 
     command += ` ${params.resource}`;
 
-    const result = executeKubectlCommand(command);
+    const result = executeKubectlCommand(command, kubeconfigPath);
 
     return {
       content: [
@@ -110,6 +145,7 @@ export async function explainResource(
 }
 
 export async function listApiResources(
+  kubeconfigPath: string,
   params: ListApiResourcesParams
 ): Promise<{ content: { type: string; text: string }[] }> {
   try {
@@ -131,7 +167,7 @@ export async function listApiResources(
       command += ` -o ${params.output}`;
     }
 
-    const result = executeKubectlCommand(command);
+    const result = executeKubectlCommand(command, kubeconfigPath);
 
     return {
       content: [

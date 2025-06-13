@@ -7,49 +7,73 @@ import * as os from "os";
 
 export const kubectlPatchSchema = {
   name: "kubectl_patch",
-  description: "Update field(s) of a resource using strategic merge patch, JSON merge patch, or JSON patch",
+  description:
+    "Update field(s) of a resource using strategic merge patch, JSON merge patch, or JSON patch",
   inputSchema: {
     type: "object",
     properties: {
-      resourceType: { 
-        type: "string", 
-        description: "Type of resource to patch (e.g., pods, deployments, services)" 
+      subscriptionId: {
+        type: "string",
+        description: "Azure subscription ID for multi-tenant authentication",
       },
-      name: { 
-        type: "string", 
-        description: "Name of the resource to patch"
+      resourceGroup: {
+        type: "string",
+        description:
+          "Azure resource group name for multi-tenant authentication",
       },
-      namespace: { 
-        type: "string", 
-        description: "Namespace of the resource", 
-        default: "default" 
+      clusterName: {
+        type: "string",
+        description:
+          "Azure Kubernetes cluster name for multi-tenant authentication",
+      },
+      resourceType: {
+        type: "string",
+        description:
+          "Type of resource to patch (e.g., pods, deployments, services)",
+      },
+      name: {
+        type: "string",
+        description: "Name of the resource to patch",
+      },
+      namespace: {
+        type: "string",
+        description: "Namespace of the resource",
+        default: "default",
       },
       patchType: {
         type: "string",
         description: "Type of patch to apply",
         enum: ["strategic", "merge", "json"],
-        default: "strategic"
+        default: "strategic",
       },
       patchData: {
         type: "object",
-        description: "Patch data as a JSON object"
+        description: "Patch data as a JSON object",
       },
       patchFile: {
         type: "string",
-        description: "Path to a file containing the patch data (alternative to patchData)"
+        description:
+          "Path to a file containing the patch data (alternative to patchData)",
       },
       dryRun: {
         type: "boolean",
-        description: "If true, only print the object that would be sent, without sending it",
-        default: false
-      }
+        description:
+          "If true, only print the object that would be sent, without sending it",
+        default: false,
+      },
     },
-    required: ["resourceType", "name"],
-  }
+    required: [
+      "subscriptionId",
+      "resourceGroup",
+      "clusterName",
+      "resourceType",
+      "name",
+    ],
+  },
 };
 
 export async function kubectlPatch(
-  k8sManager: KubernetesManager,
+  kubeconfigPath: string,
   input: {
     resourceType: string;
     name: string;
@@ -72,10 +96,10 @@ export async function kubectlPatch(
     const patchType = input.patchType || "strategic";
     const dryRun = input.dryRun || false;
     let tempFile: string | null = null;
-    
+
     // Build the kubectl patch command
     let command = `kubectl patch ${input.resourceType} ${input.name} -n ${namespace}`;
-    
+
     // Add patch type flag
     switch (patchType) {
       case "strategic":
@@ -90,7 +114,7 @@ export async function kubectlPatch(
       default:
         command += " --type strategic";
     }
-    
+
     // Handle patch data
     if (input.patchData) {
       // Create a temporary file for the patch data
@@ -101,16 +125,18 @@ export async function kubectlPatch(
     } else if (input.patchFile) {
       command += ` --patch-file ${input.patchFile}`;
     }
-    
+
     // Add dry-run flag if requested
     if (dryRun) {
       command += " --dry-run=client";
     }
-    
-    // Execute the command
+
     try {
-      const result = execSync(command, { encoding: "utf8", env: { ...process.env, KUBECONFIG: process.env.KUBECONFIG } });
-      
+      const result = execSync(command, {
+        encoding: "utf8",
+        env: { ...process.env, KUBECONFIG: kubeconfigPath },
+      });
+
       // Clean up temp file if created
       if (tempFile) {
         try {
@@ -119,7 +145,7 @@ export async function kubectlPatch(
           console.warn(`Failed to delete temporary file ${tempFile}: ${err}`);
         }
       }
-      
+
       return {
         content: [
           {
@@ -137,7 +163,7 @@ export async function kubectlPatch(
           console.warn(`Failed to delete temporary file ${tempFile}: ${err}`);
         }
       }
-      
+
       throw new McpError(
         ErrorCode.InternalError,
         `Failed to patch resource: ${error.message}`
@@ -147,10 +173,10 @@ export async function kubectlPatch(
     if (error instanceof McpError) {
       throw error;
     }
-    
+
     throw new McpError(
       ErrorCode.InternalError,
       `Failed to execute kubectl patch command: ${error.message}`
     );
   }
-} 
+}

@@ -11,36 +11,52 @@ export const kubectlApplySchema = {
   inputSchema: {
     type: "object",
     properties: {
-      manifest: { 
-        type: "string", 
-        description: "YAML manifest to apply" 
+      subscriptionId: {
+        type: "string",
+        description: "Azure subscription ID for multi-tenant authentication",
       },
-      filename: { 
-        type: "string", 
-        description: "Path to a YAML file to apply (optional - use either manifest or filename)" 
+      resourceGroup: {
+        type: "string",
+        description:
+          "Azure resource group name for multi-tenant authentication",
       },
-      namespace: { 
-        type: "string", 
-        description: "Namespace to apply the resource to (optional)", 
-        default: "default" 
+      clusterName: {
+        type: "string",
+        description:
+          "Azure Kubernetes cluster name for multi-tenant authentication",
+      },
+      manifest: {
+        type: "string",
+        description: "YAML manifest to apply",
+      },
+      filename: {
+        type: "string",
+        description:
+          "Path to a YAML file to apply (optional - use either manifest or filename)",
+      },
+      namespace: {
+        type: "string",
+        description: "Namespace to apply the resource to (optional)",
+        default: "default",
       },
       dryRun: {
         type: "boolean",
         description: "If true, only validate the resource, don't apply it",
-        default: false
+        default: false,
       },
       force: {
         type: "boolean",
-        description: "If true, immediately remove resources from API and bypass graceful deletion",
-        default: false
-      }
+        description:
+          "If true, immediately remove resources from API and bypass graceful deletion",
+        default: false,
+      },
     },
-    required: [],
+    required: ["subscriptionId", "resourceGroup", "clusterName"],
   },
 } as const;
 
 export async function kubectlApply(
-  k8sManager: KubernetesManager,
+  kubeconfigPath: string,
   input: {
     manifest?: string;
     filename?: string;
@@ -60,10 +76,10 @@ export async function kubectlApply(
     const namespace = input.namespace || "default";
     const dryRun = input.dryRun || false;
     const force = input.force || false;
-    
+
     let command = "kubectl apply";
     let tempFile: string | null = null;
-    
+
     // Process manifest content if provided
     if (input.manifest) {
       // Create temporary file for the manifest
@@ -74,24 +90,27 @@ export async function kubectlApply(
     } else if (input.filename) {
       command += ` -f ${input.filename}`;
     }
-    
+
     // Add namespace
     command += ` -n ${namespace}`;
-    
+
     // Add dry-run flag if requested
     if (dryRun) {
       command += " --dry-run=client";
     }
-    
+
     // Add force flag if requested
     if (force) {
       command += " --force";
     }
-    
+
     // Execute the command
     try {
-      const result = execSync(command, { encoding: "utf8", env: { ...process.env, KUBECONFIG: process.env.KUBECONFIG } });
-      
+      const result = execSync(command, {
+        encoding: "utf8",
+        env: { ...process.env, KUBECONFIG: kubeconfigPath },
+      });
+
       // Clean up temp file if created
       if (tempFile) {
         try {
@@ -100,7 +119,7 @@ export async function kubectlApply(
           console.warn(`Failed to delete temporary file ${tempFile}: ${err}`);
         }
       }
-      
+
       return {
         content: [
           {
@@ -118,7 +137,7 @@ export async function kubectlApply(
           console.warn(`Failed to delete temporary file ${tempFile}: ${err}`);
         }
       }
-      
+
       throw new McpError(
         ErrorCode.InternalError,
         `Failed to apply manifest: ${error.message}`
@@ -128,10 +147,10 @@ export async function kubectlApply(
     if (error instanceof McpError) {
       throw error;
     }
-    
+
     throw new McpError(
       ErrorCode.InternalError,
       `Failed to execute kubectl apply command: ${error.message}`
     );
   }
-} 
+}
