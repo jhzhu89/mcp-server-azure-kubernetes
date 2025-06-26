@@ -12,6 +12,10 @@ import { TokenManagerBase } from "./token-manager-base.js";
 
 export class AzureAuthManager extends TokenManagerBase {
   private tokenCache: LRUCache<string, CachedToken>;
+  private activeRequests: Map<
+    string,
+    Promise<{ token: string; expiresAt: number }>
+  > = new Map();
 
   constructor(config: MultiTenantConfig) {
     super(config);
@@ -23,12 +27,12 @@ export class AzureAuthManager extends TokenManagerBase {
   }
 
   async getArmToken(
-    userContext: UserContext
+    userContext: UserContext,
   ): Promise<{ token: string; expiresAt: number }> {
     const cacheKey = buildCacheKey(
       "arm",
       userContext.tenantId,
-      userContext.userObjectId
+      userContext.userObjectId,
     );
 
     const cached = this.tokenCache.get(cacheKey);
@@ -40,17 +44,33 @@ export class AzureAuthManager extends TokenManagerBase {
       };
     }
 
+    let activeRequest = this.activeRequests.get(cacheKey);
+    if (!activeRequest) {
+      activeRequest = this.executeTokenAcquisition(userContext);
+      this.activeRequests.set(cacheKey, activeRequest);
+    }
+
+    try {
+      const result = await activeRequest;
+      this.tokenCache.set(cacheKey, {
+        token: result.token,
+        expiresAt: result.expiresAt,
+      });
+      return result;
+    } finally {
+      this.activeRequests.delete(cacheKey);
+    }
+  }
+
+  private async executeTokenAcquisition(
+    userContext: UserContext,
+  ): Promise<{ token: string; expiresAt: number }> {
     try {
       const tokenResult = await this.performOboFlow(
         userContext.accessToken,
         "https://management.azure.com/.default",
-        userContext.tenantId
+        userContext.tenantId,
       );
-
-      this.tokenCache.set(cacheKey, {
-        token: tokenResult.accessToken,
-        expiresAt: tokenResult.expiresAt,
-      });
 
       return {
         token: tokenResult.accessToken,
@@ -61,7 +81,7 @@ export class AzureAuthManager extends TokenManagerBase {
         MultiTenantErrorCode.TOKEN_ACQUISITION_FAILED,
         `Failed to acquire ARM token: ${error}`,
         userContext.userObjectId,
-        userContext.tenantId
+        userContext.tenantId,
       );
     }
   }
@@ -87,7 +107,7 @@ export class AzureAuthManager extends TokenManagerBase {
     } catch (error) {
       throw new MultiTenantError(
         MultiTenantErrorCode.JWT_VALIDATION_FAILED,
-        `Failed to extract user info from JWT: ${error}`
+        `Failed to extract user info from JWT: ${error}`,
       );
     }
   }
@@ -103,7 +123,7 @@ export class AzureAuthManager extends TokenManagerBase {
 
   async validateTenantAccess(
     userContext: UserContext,
-    subscription: string
+    subscription: string,
   ): Promise<boolean> {
     // TODO: Implement proper tenant validation
     // Should check if subscription belongs to user's tenant via ARM API
@@ -113,13 +133,13 @@ export class AzureAuthManager extends TokenManagerBase {
 
   async createUserContext(
     accessToken: string,
-    subscription?: string
+    subscription?: string,
   ): Promise<UserContext> {
     const isValid = await this.validateJwtToken(accessToken);
     if (!isValid) {
       throw new MultiTenantError(
         MultiTenantErrorCode.JWT_VALIDATION_FAILED,
-        "Invalid or expired JWT token"
+        "Invalid or expired JWT token",
       );
     }
 
@@ -134,14 +154,14 @@ export class AzureAuthManager extends TokenManagerBase {
     if (subscription) {
       const isValid = await this.validateTenantAccess(
         userContext,
-        subscription
+        subscription,
       );
       if (!isValid) {
         throw new MultiTenantError(
           MultiTenantErrorCode.TENANT_BOUNDARY_VIOLATION,
           "Access denied to the specified subscription",
           userContext.userObjectId,
-          userContext.tenantId
+          userContext.tenantId,
         );
       }
     }

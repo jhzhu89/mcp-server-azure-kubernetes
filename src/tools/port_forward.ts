@@ -3,7 +3,7 @@ import { KubernetesManager } from "../utils/kubernetes-manager.js";
 
 // Use spawn instead of exec because port-forward is a long-running process
 async function executeKubectlCommandAsync(
-  command: string
+  command: string,
 ): Promise<{ success: boolean; message: string; pid: number }> {
   return new Promise((resolve, reject) => {
     const [cmd, ...args] = command.split(" ");
@@ -35,8 +35,8 @@ async function executeKubectlCommandAsync(
       if (code !== 0) {
         reject(
           new Error(
-            `Port-forward process exited with code ${code}. Error: ${errorOutput}`
-          )
+            `Port-forward process exited with code ${code}. Error: ${errorOutput}`,
+          ),
         );
       }
     });
@@ -45,7 +45,7 @@ async function executeKubectlCommandAsync(
     setTimeout(() => {
       if (!output.includes("Forwarding from")) {
         reject(
-          new Error("port-forwarding failed - no success message received")
+          new Error("port-forwarding failed - no success message received"),
         );
       }
     }, 5000);
@@ -98,7 +98,7 @@ export async function startPortForward(
     localPort: number;
     targetPort: number;
     namespace?: string;
-  }
+  },
 ): Promise<{ content: { success: boolean; message: string }[] }> {
   let command = `kubectl port-forward`;
   if (input.namespace) {
@@ -118,7 +118,7 @@ export async function startPortForward(
           } catch (error) {
             console.error(
               `Failed to stop port-forward process ${result.pid}:`,
-              error
+              error,
             );
           }
         },
@@ -166,7 +166,7 @@ export async function stopPortForward(
   k8sManager: KubernetesManager,
   input: {
     id: string;
-  }
+  },
 ): Promise<{ content: { success: boolean; message: string }[] }> {
   const portForward = k8sManager.getPortForward(input.id);
   if (!portForward) {

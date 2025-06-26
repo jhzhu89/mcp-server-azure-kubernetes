@@ -63,13 +63,13 @@ export async function kubectlApply(
     namespace?: string;
     dryRun?: boolean;
     force?: boolean;
-  }
+  },
 ) {
   try {
     if (!input.manifest && !input.filename) {
       throw new McpError(
         ErrorCode.InvalidRequest,
-        "Either manifest or filename must be provided"
+        "Either manifest or filename must be provided",
       );
     }
 
@@ -140,7 +140,7 @@ export async function kubectlApply(
 
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to apply manifest: ${error.message}`
+        `Failed to apply manifest: ${error.message}`,
       );
     }
   } catch (error: any) {
@@ -150,7 +150,7 @@ export async function kubectlApply(
 
     throw new McpError(
       ErrorCode.InternalError,
-      `Failed to execute kubectl apply command: ${error.message}`
+      `Failed to execute kubectl apply command: ${error.message}`,
     );
   }
 }

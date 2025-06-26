@@ -159,7 +159,7 @@ export const uninstallHelmChartSchema = {
 
 const executeHelmCommand = (
   command: string,
-  kubeconfigPath: string
+  kubeconfigPath: string,
 ): string => {
   try {
     // Add a generous timeout of 60 seconds for Helm operations
@@ -181,7 +181,7 @@ const writeValuesFile = (name: string, values: Record<string, any>): string => {
 
 export async function installHelmChart(
   params: HelmInstallOperation,
-  kubeconfigPath: string
+  kubeconfigPath: string,
 ): Promise<{ content: { type: string; text: string }[] }> {
   try {
     // Add helm repository if provided
@@ -189,7 +189,7 @@ export async function installHelmChart(
       const repoName = params.chart.split("/")[0];
       executeHelmCommand(
         `helm repo add ${repoName} ${params.repo}`,
-        kubeconfigPath
+        kubeconfigPath,
       );
       executeHelmCommand("helm repo update", kubeconfigPath);
     }
@@ -231,7 +231,7 @@ export async function installHelmChart(
 
 export async function upgradeHelmChart(
   params: HelmUpgradeOperation,
-  kubeconfigPath: string
+  kubeconfigPath: string,
 ): Promise<{ content: { type: string; text: string }[] }> {
   try {
     // Add helm repository if provided
@@ -239,7 +239,7 @@ export async function upgradeHelmChart(
       const repoName = params.chart.split("/")[0];
       executeHelmCommand(
         `helm repo add ${repoName} ${params.repo}`,
-        kubeconfigPath
+        kubeconfigPath,
       );
       executeHelmCommand("helm repo update", kubeconfigPath);
     }
@@ -281,12 +281,12 @@ export async function upgradeHelmChart(
 
 export async function uninstallHelmChart(
   params: HelmOperation,
-  kubeconfigPath: string
+  kubeconfigPath: string,
 ): Promise<{ content: { type: string; text: string }[] }> {
   try {
     executeHelmCommand(
       `helm uninstall ${params.name} --namespace ${params.namespace}`,
-      kubeconfigPath
+      kubeconfigPath,
     );
 
     const response: HelmResponse = {

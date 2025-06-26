@@ -1,7 +1,4 @@
-import {
-  ConfidentialClientApplication,
-  OnBehalfOfRequest,
-} from "@azure/msal-node";
+import { OnBehalfOfCredential } from "@azure/identity";
 import { MultiTenantError, MultiTenantErrorCode } from "../types/errors.js";
 import { MultiTenantConfig } from "../types/multi-tenant.js";
 
@@ -20,39 +17,45 @@ export abstract class TokenManagerBase {
   protected async performOboFlow(
     accessToken: string,
     scope: string,
-    userTenantId: string
+    userTenantId: string,
   ): Promise<TokenWithExpiry> {
-    const msalClient = new ConfidentialClientApplication({
-      auth: {
-        clientId: this.config.azure.clientId,
-        clientSecret: this.config.azure.clientSecret,
-        authority: `https://login.microsoftonline.com/${userTenantId}`,
-      },
-    });
-
     try {
-      const oboRequest: OnBehalfOfRequest = {
-        oboAssertion: accessToken,
-        scopes: [`${scope}`],
-      };
+      let oboCredential: OnBehalfOfCredential;
 
-      const response = await msalClient.acquireTokenOnBehalfOf(oboRequest);
+      if (this.config.azure.clientSecret) {
+        oboCredential = new OnBehalfOfCredential({
+          tenantId: userTenantId,
+          clientId: this.config.azure.clientId,
+          clientSecret: this.config.azure.clientSecret,
+          userAssertionToken: accessToken,
+        });
+      } else if (this.config.azure.certificatePath) {
+        oboCredential = new OnBehalfOfCredential({
+          tenantId: userTenantId,
+          clientId: this.config.azure.clientId,
+          certificatePath: this.config.azure.certificatePath,
+          userAssertionToken: accessToken,
+        });
+      } else {
+        throw new Error(
+          "Neither client secret nor certificate path is configured",
+        );
+      }
 
-      if (!response?.accessToken) {
+      const tokenResponse = await oboCredential.getToken(scope);
+
+      if (!tokenResponse?.token) {
         throw new Error("No access token received from OBO flow");
       }
 
-      const expiresAt =
-        response.expiresOn?.getTime() || Date.now() + 60 * 60 * 1000;
-
       return {
-        accessToken: response.accessToken,
-        expiresAt,
+        accessToken: tokenResponse.token,
+        expiresAt: tokenResponse.expiresOnTimestamp,
       };
     } catch (error) {
       throw new MultiTenantError(
         MultiTenantErrorCode.AZURE_OBO_FAILED,
-        `OBO flow failed: ${error}`
+        `OBO flow failed: ${error}`,
       );
     }
   }

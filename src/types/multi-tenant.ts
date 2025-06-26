@@ -26,7 +26,9 @@ export interface CachedUserInfo {
 export interface MultiTenantConfig {
   azure: {
     clientId: string;
-    clientSecret: string;
+    clientSecret?: string;
+    certificatePath?: string;
+    certificatePassword?: string;
     tenantId: string;
     scope: string[];
   };

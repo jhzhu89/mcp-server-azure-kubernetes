@@ -104,7 +104,7 @@ describe("KubernetesManager", () => {
 
       // Verify fs.existsSync was called with correct path
       expect(fs.existsSync).toHaveBeenCalledWith(
-        "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        "/var/run/secrets/kubernetes.io/serviceaccount/token",
       );
     });
 
@@ -126,7 +126,7 @@ describe("KubernetesManager", () => {
 
       // Verify fs.existsSync was called with correct path
       expect(fs.existsSync).toHaveBeenCalledWith(
-        "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        "/var/run/secrets/kubernetes.io/serviceaccount/token",
       );
     });
 
@@ -150,7 +150,7 @@ describe("KubernetesManager", () => {
 
       // Verify fs.existsSync was called with correct path
       expect(fs.existsSync).toHaveBeenCalledWith(
-        "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        "/var/run/secrets/kubernetes.io/serviceaccount/token",
       );
     });
   });
@@ -359,7 +359,7 @@ current-context: test-context`;
                 name: "env-context",
               }),
             ]),
-          })
+          }),
         );
       });
 
@@ -379,7 +379,7 @@ current-context: test-context`;
                 skipTLSVerify: true,
               }),
             ]),
-          })
+          }),
         );
       });
 
@@ -399,7 +399,7 @@ current-context: test-context`;
                 skipTLSVerify: false,
               }),
             ]),
-          })
+          }),
         );
       });
 
@@ -413,7 +413,7 @@ current-context: test-context`;
 
         // Verify setCurrentContext was called
         expect(kubeConfig.setCurrentContext).toHaveBeenCalledWith(
-          "test-context"
+          "test-context",
         );
       });
 
@@ -425,7 +425,7 @@ current-context: test-context`;
 
         // Verify loadFromFile was called with the custom path
         expect(kubeConfig.loadFromFile).toHaveBeenCalledWith(
-          "/path/to/custom/kubeconfig"
+          "/path/to/custom/kubeconfig",
         );
       });
 
@@ -466,7 +466,7 @@ current-context: test-context`;
 
         // Mock the KubeConfig constructor to return our mock
         vi.mocked(k8s.KubeConfig).mockImplementationOnce(
-          () => mockKubeConfig as any
+          () => mockKubeConfig as any,
         );
 
         expect(() => {

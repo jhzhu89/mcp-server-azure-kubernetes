@@ -91,14 +91,14 @@ export async function kubectlDelete(
     allNamespaces?: boolean;
     force?: boolean;
     gracePeriodSeconds?: number;
-  }
+  },
 ) {
   try {
     // Validate input - need at least one way to identify resources
     if (!input.resourceType && !input.manifest && !input.filename) {
       throw new McpError(
         ErrorCode.InvalidRequest,
-        "Either resourceType, manifest, or filename must be provided"
+        "Either resourceType, manifest, or filename must be provided",
       );
     }
 
@@ -106,7 +106,7 @@ export async function kubectlDelete(
     if (input.resourceType && !input.name && !input.labelSelector) {
       throw new McpError(
         ErrorCode.InvalidRequest,
-        "When using resourceType, either name or labelSelector must be provided"
+        "When using resourceType, either name or labelSelector must be provided",
       );
     }
 
@@ -204,7 +204,7 @@ export async function kubectlDelete(
                   status: "not_found",
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -214,7 +214,7 @@ export async function kubectlDelete(
 
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to delete resource: ${error.message}`
+        `Failed to delete resource: ${error.message}`,
       );
     }
   } catch (error: any) {
@@ -224,7 +224,7 @@ export async function kubectlDelete(
 
     throw new McpError(
       ErrorCode.InternalError,
-      `Failed to execute kubectl delete command: ${error.message}`
+      `Failed to execute kubectl delete command: ${error.message}`,
     );
   }
 }

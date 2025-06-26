@@ -21,9 +21,11 @@ async function findAvailablePort(startPort: number): Promise<number> {
         resolve(port);
       });
     });
-    server.on('error', () => {
+    server.on("error", () => {
       // Try next port
-      findAvailablePort(startPort + 1).then(resolve).catch(reject);
+      findAvailablePort(startPort + 1)
+        .then(resolve)
+        .catch(reject);
     });
   });
 }
@@ -42,7 +44,7 @@ function startSSEServerWithReturn(server: Server): Promise<any> {
 
     app.post("/messages", (req, res) => {
       const transport = transports.find(
-        (t) => t.sessionId === req.query.sessionId
+        (t) => t.sessionId === req.query.sessionId,
       );
 
       if (transport) {
@@ -57,12 +59,12 @@ function startSSEServerWithReturn(server: Server): Promise<any> {
     const port = parseInt(process.env.PORT || "3000");
     const serverInstance = app.listen(port, () => {
       console.log(
-        `mcp-kubernetes-server is listening on port ${port}\nUse the following url to connect to the server:\nhttp://localhost:${port}/sse`
+        `mcp-kubernetes-server is listening on port ${port}\nUse the following url to connect to the server:\nhttp://localhost:${port}/sse`,
       );
       resolve(serverInstance);
     });
-    
-    serverInstance.on('error', reject);
+
+    serverInstance.on("error", reject);
   });
 }
 
@@ -85,7 +87,7 @@ describe("SSE transport", () => {
         capabilities: {
           tools: {},
         },
-      }
+      },
     );
 
     // Set up the kubectl_list tool
@@ -100,14 +102,17 @@ describe("SSE transport", () => {
 
       switch (name) {
         case "kubectl_list":
-          return await kubectlList(k8sManager, input as { 
-            resourceType: string;
-            namespace?: string;
-            output?: string;
-            allNamespaces?: boolean;
-            labelSelector?: string;
-            fieldSelector?: string;
-          });
+          return await kubectlList(
+            k8sManager,
+            input as {
+              resourceType: string;
+              namespace?: string;
+              output?: string;
+              allNamespaces?: boolean;
+              labelSelector?: string;
+              fieldSelector?: string;
+            },
+          );
         default:
           throw new Error(`Unknown tool: ${name}`);
       }
@@ -116,13 +121,13 @@ describe("SSE transport", () => {
     // Find an available port instead of using a fixed one
     actualPort = await findAvailablePort(3001);
     process.env.PORT = actualPort.toString();
-    
+
     // Start the SSE server and get the Express app reference
     expressApp = await startSSEServerWithReturn(server);
     serverUrl = `http://localhost:${actualPort}`;
-    
+
     // Wait a bit for server to fully start
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   });
 
   afterAll(async () => {
@@ -184,11 +189,11 @@ describe("SSE transport", () => {
             arguments: {
               resourceType: "pods",
               namespace: "default",
-              output: "json"
-            }
+              output: "json",
+            },
           },
         }),
-      }
+      },
     );
 
     expect(toolCallResponse.status).toBe(202);
@@ -220,7 +225,7 @@ describe("SSE transport", () => {
     if (toolCallResult.result) {
       expect(toolCallResult.result.content[0].type).toBe("text");
       const responseText = toolCallResult.result.content[0].text;
-      
+
       // If it's JSON, parse it and check structure
       try {
         const parsedResponse = JSON.parse(responseText);

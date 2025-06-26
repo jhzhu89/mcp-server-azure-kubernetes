@@ -45,7 +45,7 @@ export function startStreamableHTTPServer(getServer: () => Server) {
           message: "Method not allowed.",
         },
         id: null,
-      })
+      }),
     );
   });
 
@@ -59,13 +59,11 @@ export function startStreamableHTTPServer(getServer: () => Server) {
           message: "Method not allowed.",
         },
         id: null,
-      })
+      }),
     );
   });
 
   const port = process.env.PORT || 3000;
   app.listen(port);
-  console.log(
-    `MCP Stateless Streamable HTTP Server listening on port ${port}`
-  );
+  console.log(`MCP Stateless Streamable HTTP Server listening on port ${port}`);
 }

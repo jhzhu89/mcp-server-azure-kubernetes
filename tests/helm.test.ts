@@ -12,7 +12,7 @@ async function sleep(ms: number): Promise<void> {
 // Helper function to wait for cluster readiness
 async function waitForClusterReadiness(
   client: Client,
-  namespace: string
+  namespace: string,
 ): Promise<void> {
   let attempts = 0;
   const maxAttempts = 20;
@@ -28,11 +28,11 @@ async function waitForClusterReadiness(
             name: "kubectl_list",
             arguments: {
               resourceType: "namespaces",
-              output: "json"
+              output: "json",
             },
           },
         },
-        KubectlResponseSchema
+        KubectlResponseSchema,
       );
 
       // Then check if we can list services
@@ -44,18 +44,18 @@ async function waitForClusterReadiness(
             arguments: {
               resourceType: "services",
               namespace: namespace,
-              output: "json"
+              output: "json",
             },
           },
         },
-        KubectlResponseSchema
+        KubectlResponseSchema,
       );
       return;
     } catch (e) {
       attempts++;
       if (attempts === maxAttempts) {
         throw new Error(
-          `Cluster not ready after ${maxAttempts} attempts. Last error: ${e.message}`
+          `Cluster not ready after ${maxAttempts} attempts. Last error: ${e.message}`,
         );
       }
       await sleep(waitTime);
@@ -84,7 +84,7 @@ describe("helm operations", () => {
         },
         {
           capabilities: {},
-        }
+        },
       );
       await client.connect(transport);
       await sleep(1000);
@@ -109,7 +109,7 @@ describe("helm operations", () => {
               },
             },
           },
-          HelmResponseSchema
+          HelmResponseSchema,
         )
         .catch(() => {}); // Ignore errors if release doesn't exist
 
@@ -143,32 +143,32 @@ describe("helm operations", () => {
                 type: "ClusterIP",
                 port: 80,
                 annotations: {
-                  "test.annotation": "value"
-                }
+                  "test.annotation": "value",
+                },
               },
               resources: {
                 limits: {
                   cpu: "100m",
-                  memory: "128Mi"
+                  memory: "128Mi",
                 },
                 requests: {
                   cpu: "50m",
-                  memory: "64Mi"
-                }
+                  memory: "64Mi",
+                },
               },
               metrics: {
                 enabled: true,
                 service: {
                   annotations: {
-                    "prometheus.io/scrape": "true"
-                  }
-                }
-              }
-            }
-          }
-        }
+                    "prometheus.io/scrape": "true",
+                  },
+                },
+              },
+            },
+          },
+        },
       },
-      HelmResponseSchema
+      HelmResponseSchema,
     );
 
     expect(installResult.content[0].type).toBe("text");
@@ -183,11 +183,11 @@ describe("helm operations", () => {
           name: "uninstall_helm_chart",
           arguments: {
             name: testReleaseName,
-            namespace: testNamespace
-          }
-        }
+            namespace: testNamespace,
+          },
+        },
       },
-      HelmResponseSchema
+      HelmResponseSchema,
     );
   }, 60000);
 
@@ -201,11 +201,11 @@ describe("helm operations", () => {
             name: "kubectl_create",
             arguments: {
               resourceType: "namespace",
-              name: testNamespace
+              name: testNamespace,
             },
           },
         },
-        KubectlResponseSchema
+        KubectlResponseSchema,
       );
       // Wait for namespace to be ready
       await sleep(2000);
@@ -229,7 +229,7 @@ describe("helm operations", () => {
             },
           },
         },
-        HelmResponseSchema
+        HelmResponseSchema,
       );
       // Wait for cleanup
       await sleep(5000);
@@ -246,21 +246,22 @@ describe("helm operations", () => {
           arguments: {
             resourceType: "deployments",
             namespace: testNamespace,
-            output: "json"
+            output: "json",
           },
         },
       },
-      KubectlResponseSchema
+      KubectlResponseSchema,
     );
 
     const initialDeploymentsCheck = JSON.parse(
-      initialCheckResult.content[0].text
+      initialCheckResult.content[0].text,
     );
-    const deploymentsExist = initialDeploymentsCheck.items && 
-                             initialDeploymentsCheck.items.length > 0 && 
-                             initialDeploymentsCheck.items.some((d: any) => 
-                               d.name && d.name.startsWith(testReleaseName)
-                             );
+    const deploymentsExist =
+      initialDeploymentsCheck.items &&
+      initialDeploymentsCheck.items.length > 0 &&
+      initialDeploymentsCheck.items.some(
+        (d: any) => d.name && d.name.startsWith(testReleaseName),
+      );
     expect(deploymentsExist).toBe(false);
 
     // Step 1: Install the chart
@@ -292,7 +293,7 @@ describe("helm operations", () => {
           },
         },
       },
-      HelmResponseSchema
+      HelmResponseSchema,
     );
 
     expect(installResult.content[0].type).toBe("text");
@@ -311,23 +312,24 @@ describe("helm operations", () => {
           arguments: {
             resourceType: "deployments",
             namespace: testNamespace,
-            output: "json"
+            output: "json",
           },
         },
       },
-      KubectlResponseSchema
+      KubectlResponseSchema,
     );
 
     const initialDeploymentsAfterInstall = JSON.parse(
-      initialDeploymentResult.content[0].text
+      initialDeploymentResult.content[0].text,
     );
-    
+
     // Check that some deployment with the release name prefix exists
-    const deploymentExists = initialDeploymentsAfterInstall.items && 
-                            initialDeploymentsAfterInstall.items.length > 0 && 
-                            initialDeploymentsAfterInstall.items.some((d: any) => 
-                              d.name && d.name.startsWith(testReleaseName)
-                            );
+    const deploymentExists =
+      initialDeploymentsAfterInstall.items &&
+      initialDeploymentsAfterInstall.items.length > 0 &&
+      initialDeploymentsAfterInstall.items.some(
+        (d: any) => d.name && d.name.startsWith(testReleaseName),
+      );
     expect(deploymentExists).toBe(true);
 
     // Step 2: Upgrade the chart
@@ -352,7 +354,7 @@ describe("helm operations", () => {
           },
         },
       },
-      HelmResponseSchema
+      HelmResponseSchema,
     );
 
     expect(upgradeResult.content[0].type).toBe("text");
@@ -371,16 +373,16 @@ describe("helm operations", () => {
           arguments: {
             resourceType: "deployments",
             namespace: testNamespace,
-            output: "json"
+            output: "json",
           },
         },
       },
-      KubectlResponseSchema
+      KubectlResponseSchema,
     );
 
     const deployments = JSON.parse(deploymentResult.content[0].text);
-    const nginxDeployment = deployments.items?.find((d: any) =>
-      d.name && d.name.startsWith(testReleaseName)
+    const nginxDeployment = deployments.items?.find(
+      (d: any) => d.name && d.name.startsWith(testReleaseName),
     );
 
     console.error("=== DEBUG: NGINX DEPLOYMENT ===");
@@ -388,14 +390,19 @@ describe("helm operations", () => {
     console.error("=== END DEBUG ===");
 
     expect(nginxDeployment).toBeDefined();
-    
+
     // Try to access replicas conditionally if spec exists
     if (nginxDeployment && nginxDeployment.spec) {
       expect(nginxDeployment.spec?.replicas).toBe(2);
     } else {
-      console.error("No spec.replicas property found, checking other properties");
+      console.error(
+        "No spec.replicas property found, checking other properties",
+      );
       // Check if there's any other property that might indicate replicas
-      console.error("Available properties:", Object.keys(nginxDeployment || {}));
+      console.error(
+        "Available properties:",
+        Object.keys(nginxDeployment || {}),
+      );
     }
 
     // Step 3: Uninstall the chart
@@ -412,7 +419,7 @@ describe("helm operations", () => {
           },
         },
       },
-      HelmResponseSchema
+      HelmResponseSchema,
     );
 
     expect(uninstallResult.content[0].type).toBe("text");
@@ -431,19 +438,20 @@ describe("helm operations", () => {
           arguments: {
             resourceType: "deployments",
             namespace: testNamespace,
-            output: "json"
+            output: "json",
           },
         },
       },
-      KubectlResponseSchema
+      KubectlResponseSchema,
     );
 
     const finalDeployments = JSON.parse(finalDeploymentResult.content[0].text);
-    const allDeploymentsGone = !finalDeployments.items ||
-                              finalDeployments.items.length === 0 ||
-                              finalDeployments.items.every((d: any) => 
-                                !d.name || !d.name.startsWith(testReleaseName)
-                              );
+    const allDeploymentsGone =
+      !finalDeployments.items ||
+      finalDeployments.items.length === 0 ||
+      finalDeployments.items.every(
+        (d: any) => !d.name || !d.name.startsWith(testReleaseName),
+      );
     expect(allDeploymentsGone).toBe(true);
   }, 180000); // Increase timeout to 180s for the entire lifecycle test
 });

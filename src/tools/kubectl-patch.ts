@@ -82,13 +82,13 @@ export async function kubectlPatch(
     patchData?: object;
     patchFile?: string;
     dryRun?: boolean;
-  }
+  },
 ) {
   try {
     if (!input.patchData && !input.patchFile) {
       throw new McpError(
         ErrorCode.InvalidRequest,
-        "Either patchData or patchFile must be provided"
+        "Either patchData or patchFile must be provided",
       );
     }
 
@@ -166,7 +166,7 @@ export async function kubectlPatch(
 
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to patch resource: ${error.message}`
+        `Failed to patch resource: ${error.message}`,
       );
     }
   } catch (error: any) {
@@ -176,7 +176,7 @@ export async function kubectlPatch(
 
     throw new McpError(
       ErrorCode.InternalError,
-      `Failed to execute kubectl patch command: ${error.message}`
+      `Failed to execute kubectl patch command: ${error.message}`,
     );
   }
 }

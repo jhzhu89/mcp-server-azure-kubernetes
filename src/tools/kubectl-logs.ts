@@ -104,7 +104,7 @@ export async function kubectlLogs(
     previous?: boolean;
     follow?: boolean;
     labelSelector?: string;
-  }
+  },
 ) {
   try {
     const resourceType = input.resourceType.toLowerCase();
@@ -152,7 +152,7 @@ export async function kubectlLogs(
           `job-name=${name}`,
           namespace,
           input,
-          kubeconfigPath
+          kubeconfigPath,
         );
       } else if (resourceType === "cronjob") {
         // For cronjobs, it's more complex - need to find the job first
@@ -175,7 +175,7 @@ export async function kubectlLogs(
                       message: `No jobs found for cronjob ${name} in namespace ${namespace}`,
                     },
                     null,
-                    2
+                    2,
                   ),
                 },
               ],
@@ -191,7 +191,7 @@ export async function kubectlLogs(
               `job-name=${job}`,
               namespace,
               input,
-              kubeconfigPath
+              kubeconfigPath,
             );
             const jobLog = JSON.parse(result.content[0].text);
             allJobLogs[job] = jobLog.logs;
@@ -208,7 +208,7 @@ export async function kubectlLogs(
                     jobs: allJobLogs,
                   },
                   null,
-                  2
+                  2,
                 ),
               },
             ],
@@ -239,7 +239,7 @@ export async function kubectlLogs(
             labelSelector,
             namespace,
             input,
-            kubeconfigPath
+            kubeconfigPath,
           );
         }
 
@@ -253,7 +253,7 @@ export async function kubectlLogs(
                   error: `Unexpected resource type: ${resourceType}`,
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -268,19 +268,19 @@ export async function kubectlLogs(
         input.labelSelector,
         namespace,
         input,
-        kubeconfigPath
+        kubeconfigPath,
       );
     } else {
       throw new McpError(
         ErrorCode.InvalidRequest,
-        `Unsupported resource type: ${resourceType}`
+        `Unsupported resource type: ${resourceType}`,
       );
     }
   } catch (error: any) {
     if (error instanceof McpError) throw error;
     throw new McpError(
       ErrorCode.InternalError,
-      `Failed to get logs: ${error.message}`
+      `Failed to get logs: ${error.message}`,
     );
   }
 }
@@ -322,7 +322,7 @@ async function getLabelSelectorLogs(
   labelSelector: string,
   namespace: string,
   input: any,
-  kubeconfigPath: string
+  kubeconfigPath: string,
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   try {
     // First, find all pods matching the label selector
@@ -344,7 +344,7 @@ async function getLabelSelectorLogs(
                 message: `No pods found with label selector "${labelSelector}" in namespace ${namespace}`,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -390,7 +390,7 @@ async function getLabelSelectorLogs(
               logs: logsMap,
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -412,7 +412,7 @@ function formatLogOutput(resourceName: string, logOutput: string) {
             logs: logOutput,
           },
           null,
-          2
+          2,
         ),
       },
     ],
@@ -434,7 +434,7 @@ function handleCommandError(error: any, resourceDescription: string) {
               status: "not_found",
             },
             null,
-            2
+            2,
           ),
         },
       ],
@@ -451,7 +451,7 @@ function handleCommandError(error: any, resourceDescription: string) {
             error: `Failed to get logs for ${resourceDescription}: ${error.message}`,
           },
           null,
-          2
+          2,
         ),
       },
     ],

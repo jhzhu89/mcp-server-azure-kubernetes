@@ -23,7 +23,7 @@ export const CustomContainerConfig = z.object({
         containerPort: z.number(),
         name: z.string().optional(),
         protocol: z.string().optional(),
-      })
+      }),
     )
     .optional(),
   resources: z
@@ -38,7 +38,7 @@ export const CustomContainerConfig = z.object({
         name: z.string(),
         value: z.string().optional(),
         valueFrom: z.any().optional(),
-      })
+      }),
     )
     .optional(),
   volumeMounts: z
@@ -47,7 +47,7 @@ export const CustomContainerConfig = z.object({
         name: z.string(),
         mountPath: z.string(),
         readOnly: z.boolean().optional(),
-      })
+      }),
     )
     .optional(),
 });

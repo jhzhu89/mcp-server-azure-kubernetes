@@ -96,7 +96,7 @@ export const listApiResourcesSchema = {
 
 const executeKubectlCommand = (
   command: string,
-  kubeconfigPath: string
+  kubeconfigPath: string,
 ): string => {
   try {
     return execSync(command, {
@@ -110,7 +110,7 @@ const executeKubectlCommand = (
 
 export async function explainResource(
   kubeconfigPath: string,
-  params: ExplainResourceParams
+  params: ExplainResourceParams,
 ): Promise<{ content: { type: string; text: string }[] }> {
   try {
     let command = "kubectl explain";
@@ -146,7 +146,7 @@ export async function explainResource(
 
 export async function listApiResources(
   kubeconfigPath: string,
-  params: ListApiResourcesParams
+  params: ListApiResourcesParams,
 ): Promise<{ content: { type: string; text: string }[] }> {
   try {
     let command = "kubectl api-resources";

@@ -5,7 +5,7 @@ export const HelmResponseSchema = z.object({
     z.object({
       type: z.literal("text"),
       text: z.string(),
-    })
+    }),
   ),
 });
 

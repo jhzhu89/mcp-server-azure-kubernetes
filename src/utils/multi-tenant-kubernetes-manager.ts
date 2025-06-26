@@ -12,31 +12,31 @@ export class MultiTenantKubernetesManager {
 
   async getTenantKubernetesManager(
     userContext: UserContext,
-    resourceId: ResourceId
+    resourceId: ResourceId,
   ): Promise<KubernetesManager> {
     const { k8sManager } =
       await this.kubeconfigManager.getOrCreateKubernetesManager(
         userContext,
-        resourceId
+        resourceId,
       );
     return k8sManager;
   }
 
   async getOrCreateTenantKubeconfig(
     userContext: UserContext,
-    resourceId: ResourceId
+    resourceId: ResourceId,
   ): Promise<string> {
     const { kubeconfigPath } =
       await this.kubeconfigManager.getOrCreateKubernetesManager(
         userContext,
-        resourceId
+        resourceId,
       );
     return kubeconfigPath;
   }
 
   async cleanupTenant(
     userContext: UserContext,
-    resourceId: ResourceId
+    resourceId: ResourceId,
   ): Promise<void> {
     await this.kubeconfigManager.cleanupTenant(userContext, resourceId);
   }

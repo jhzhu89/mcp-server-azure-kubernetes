@@ -17,7 +17,7 @@ describe("ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS flag", () => {
     // Filter out destructive tools
     const tools = nonDestructiveTools
       ? allTools.filter(
-          (tool) => !destructiveTools.some((dt) => dt.name === tool.name)
+          (tool) => !destructiveTools.some((dt) => dt.name === tool.name),
         )
       : allTools;
 
@@ -27,9 +27,7 @@ describe("ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS flag", () => {
     }
 
     const nonDestructiveToolNames = allTools
-      .filter(
-        (tool) => !destructiveTools.some((dt) => dt.name === tool.name)
-      )
+      .filter((tool) => !destructiveTools.some((dt) => dt.name === tool.name))
       .map((tool) => tool.name);
 
     for (const nonDestructiveTool of nonDestructiveToolNames) {
@@ -48,7 +46,7 @@ describe("ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS flag", () => {
     // When the flag is disabled, all tools should be available
     const tools = nonDestructiveTools
       ? allTools.filter(
-          (tool) => !destructiveTools.some((dt) => dt.name === tool.name)
+          (tool) => !destructiveTools.some((dt) => dt.name === tool.name),
         )
       : allTools;
 
@@ -58,9 +56,7 @@ describe("ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS flag", () => {
     }
 
     const nonDestructiveToolNames = allTools
-      .filter(
-        (tool) => !destructiveTools.some((dt) => dt.name === tool.name)
-      )
+      .filter((tool) => !destructiveTools.some((dt) => dt.name === tool.name))
       .map((tool) => tool.name);
 
     for (const nonDestructiveTool of nonDestructiveToolNames) {

@@ -118,12 +118,12 @@ function createServer(): Server {
       name: serverConfig.name,
       version: serverConfig.version,
     },
-    serverConfig
+    serverConfig,
   );
 
   async function createMultiTenantContext(
     accessToken: string,
-    resourceId: ResourceId
+    resourceId: ResourceId,
   ) {
     if (
       !accessToken ||
@@ -134,21 +134,21 @@ function createServer(): Server {
       console.log("Validation failed - missing required parameters");
       throw new McpError(
         ErrorCode.InvalidRequest,
-        "Access token and Azure context parameters are required for multi-tenant operations"
+        "Access token and Azure context parameters are required for multi-tenant operations",
       );
     }
 
     const userContext = await azureAuthManager.createUserContext(
       accessToken,
-      resourceId.subscriptionId
+      resourceId.subscriptionId,
     );
     const k8sManager = await multiTenantManager.getTenantKubernetesManager(
       userContext,
-      resourceId
+      resourceId,
     );
     const kubeconfigPath = await multiTenantManager.getOrCreateTenantKubeconfig(
       userContext,
-      resourceId
+      resourceId,
     );
 
     return { k8sManager, kubeconfigPath };
@@ -176,7 +176,7 @@ function createServer(): Server {
 
       const { k8sManager } = await createMultiTenantContext(
         accessToken,
-        resourceId
+        resourceId,
       );
 
       const requestWithParams = {
@@ -186,7 +186,7 @@ function createServer(): Server {
       };
 
       return await readResource(k8sManager, requestWithParams);
-    }
+    },
   );
 
   // Tools handlers
@@ -194,7 +194,7 @@ function createServer(): Server {
     // Filter out destructive tools if ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS is set to 'true'
     const tools = nonDestructiveTools
       ? allTools.filter(
-          (tool) => !destructiveTools.some((dt) => dt.name === tool.name)
+          (tool) => !destructiveTools.some((dt) => dt.name === tool.name),
         )
       : allTools;
 
@@ -219,7 +219,7 @@ function createServer(): Server {
 
         const { kubeconfigPath, k8sManager } = await createMultiTenantContext(
           accessToken,
-          resourceId
+          resourceId,
         );
 
         if (name === "kubectl_get") {
@@ -233,7 +233,7 @@ function createServer(): Server {
               allNamespaces?: boolean;
               labelSelector?: string;
               fieldSelector?: string;
-            }
+            },
           );
         }
 
@@ -245,7 +245,7 @@ function createServer(): Server {
               name: string;
               namespace?: string;
               allNamespaces?: boolean;
-            }
+            },
           );
         }
 
@@ -259,7 +259,7 @@ function createServer(): Server {
               allNamespaces?: boolean;
               labelSelector?: string;
               fieldSelector?: string;
-            }
+            },
           );
         }
 
@@ -272,7 +272,7 @@ function createServer(): Server {
               namespace?: string;
               dryRun?: boolean;
               force?: boolean;
-            }
+            },
           );
         }
 
@@ -289,7 +289,7 @@ function createServer(): Server {
               allNamespaces?: boolean;
               force?: boolean;
               gracePeriodSeconds?: number;
-            }
+            },
           );
         }
 
@@ -302,7 +302,7 @@ function createServer(): Server {
               namespace?: string;
               dryRun?: boolean;
               validate?: boolean;
-            }
+            },
           );
         }
 
@@ -321,7 +321,7 @@ function createServer(): Server {
               previous?: boolean;
               follow?: boolean;
               labelSelector?: string;
-            }
+            },
           );
         }
 
@@ -336,7 +336,7 @@ function createServer(): Server {
               patchData?: object;
               patchFile?: string;
               dryRun?: boolean;
-            }
+            },
           );
         }
 
@@ -358,7 +358,7 @@ function createServer(): Server {
               toRevision?: number;
               timeout?: string;
               watch?: boolean;
-            }
+            },
           );
         }
 
@@ -374,7 +374,7 @@ function createServer(): Server {
               outputFormat?: string;
               flags?: Record<string, any>;
               args?: string[];
-            }
+            },
           );
         }
 
@@ -402,7 +402,7 @@ function createServer(): Server {
                       success: true,
                     },
                     null,
-                    2
+                    2,
                   ),
                 },
               ],
@@ -417,7 +417,7 @@ function createServer(): Server {
                 apiVersion?: string;
                 recursive?: boolean;
                 output?: "plaintext" | "plaintext-openapiv2";
-              }
+              },
             );
           }
 
@@ -430,7 +430,7 @@ function createServer(): Server {
                 namespace: string;
                 values?: Record<string, any>;
               },
-              kubeconfigPath
+              kubeconfigPath,
             );
           }
 
@@ -440,7 +440,7 @@ function createServer(): Server {
                 name: string;
                 namespace: string;
               },
-              kubeconfigPath
+              kubeconfigPath,
             );
           }
 
@@ -453,7 +453,7 @@ function createServer(): Server {
                 namespace: string;
                 values?: Record<string, any>;
               },
-              kubeconfigPath
+              kubeconfigPath,
             );
           }
 
@@ -465,7 +465,7 @@ function createServer(): Server {
                 namespaced?: boolean;
                 verbs?: string[];
                 output?: "wide" | "name" | "no-headers";
-              }
+              },
             );
           }
 
@@ -477,7 +477,7 @@ function createServer(): Server {
                 resourceName: string;
                 localPort: number;
                 targetPort: number;
-              }
+              },
             );
           }
 
@@ -486,7 +486,7 @@ function createServer(): Server {
               k8sManager,
               input as {
                 id: string;
-              }
+              },
             );
           }
 
@@ -498,24 +498,24 @@ function createServer(): Server {
                 namespace?: string;
                 replicas: number;
                 resourceType?: string;
-              }
+              },
             );
           }
 
           default:
             throw new McpError(
               ErrorCode.InvalidRequest,
-              `Unknown tool: ${name}`
+              `Unknown tool: ${name}`,
             );
         }
       } catch (error) {
         if (error instanceof McpError) throw error;
         throw new McpError(
           ErrorCode.InternalError,
-          `Tool execution failed: ${error}`
+          `Tool execution failed: ${error}`,
         );
       }
-    }
+    },
   );
 
   return server;
@@ -537,7 +537,7 @@ if (process.env.ENABLE_STREAMABLE_HTTP_TRANSPORT) {
   const transport = new StdioServerTransport();
 
   console.error(
-    `Starting Kubernetes MCP server v${serverConfig.version}, handling commands...`
+    `Starting Kubernetes MCP server v${serverConfig.version}, handling commands...`,
   );
 
   server.connect(transport);

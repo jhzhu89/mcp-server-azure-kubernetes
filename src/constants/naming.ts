@@ -13,12 +13,16 @@ export function buildFileName(prefix: string, ...segments: string[]): string {
   return [prefix, ...segments].join(FILE_NAME_SEPARATOR);
 }
 
-export function buildKubeconfigPath(tenantId: string, userObjectId: string, tokenHash: string): string {
+export function buildKubeconfigPath(
+  tenantId: string,
+  userObjectId: string,
+  tokenHash: string,
+): string {
   const fileName = buildFileName(
     KUBECONFIG_PREFIX,
     tenantId.slice(-8),
     userObjectId.slice(-8),
-    tokenHash.slice(0, 8)
+    tokenHash.slice(0, 8),
   );
   return `/dev/shm/${fileName}`;
 }

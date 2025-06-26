@@ -34,9 +34,15 @@ export class KubernetesManager {
 
     for (const resource of [...this.resources].reverse()) {
       try {
-        await this.deleteResource(resource.kind, resource.name, resource.namespace);
+        await this.deleteResource(
+          resource.kind,
+          resource.name,
+          resource.namespace,
+        );
       } catch (error) {
-        process.stderr.write(`Failed to delete ${resource.kind} ${resource.name}: ${error}\n`);
+        process.stderr.write(
+          `Failed to delete ${resource.kind} ${resource.name}: ${error}\n`,
+        );
       }
     }
   }
@@ -61,7 +67,7 @@ export class KubernetesManager {
         break;
     }
     this.resources = this.resources.filter(
-      (r) => !(r.kind === kind && r.name === name && r.namespace === namespace)
+      (r) => !(r.kind === kind && r.name === name && r.namespace === namespace),
     );
   }
 

@@ -13,7 +13,7 @@ async function sleep(ms: number): Promise<void> {
 async function retry<T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
-  delayMs: number = 2000
+  delayMs: number = 2000,
 ): Promise<T> {
   let lastError: Error | unknown;
 
@@ -23,7 +23,7 @@ async function retry<T>(
     } catch (error) {
       lastError = error;
       console.warn(
-        `Attempt ${attempt}/${maxRetries} failed. Retrying in ${delayMs}ms...`
+        `Attempt ${attempt}/${maxRetries} failed. Retrying in ${delayMs}ms...`,
       );
       await sleep(delayMs);
     }
@@ -51,7 +51,7 @@ describe("kubectl operations", () => {
         },
         {
           capabilities: {},
-        }
+        },
       );
 
       await client.connect(transport);
@@ -85,7 +85,7 @@ describe("kubectl operations", () => {
             },
           },
         },
-        asResponseSchema(KubectlResponseSchema)
+        asResponseSchema(KubectlResponseSchema),
       );
     });
 
@@ -111,7 +111,7 @@ describe("kubectl operations", () => {
             },
           },
         },
-        asResponseSchema(KubectlResponseSchema)
+        asResponseSchema(KubectlResponseSchema),
       );
     });
 
@@ -138,7 +138,7 @@ describe("kubectl operations", () => {
             },
           },
         },
-        asResponseSchema(KubectlResponseSchema)
+        asResponseSchema(KubectlResponseSchema),
       );
     });
 
@@ -166,7 +166,7 @@ describe("kubectl operations", () => {
             },
           },
         },
-        asResponseSchema(KubectlResponseSchema)
+        asResponseSchema(KubectlResponseSchema),
       );
     });
 
@@ -192,11 +192,11 @@ describe("kubectl operations", () => {
               arguments: {
                 resourceType: "events",
                 namespace: "default",
-                output: "json"
+                output: "json",
               },
             },
           },
-          asResponseSchema(KubectlResponseSchema)
+          asResponseSchema(KubectlResponseSchema),
         );
       });
 
@@ -231,11 +231,11 @@ describe("kubectl operations", () => {
               arguments: {
                 resourceType: "events",
                 allNamespaces: true,
-                output: "json"
+                output: "json",
               },
             },
           },
-          asResponseSchema(KubectlResponseSchema)
+          asResponseSchema(KubectlResponseSchema),
         );
       });
 
@@ -256,11 +256,11 @@ describe("kubectl operations", () => {
                 resourceType: "events",
                 namespace: "default",
                 fieldSelector: "type=Normal",
-                output: "json"
+                output: "json",
               },
             },
           },
-          asResponseSchema(KubectlResponseSchema)
+          asResponseSchema(KubectlResponseSchema),
         );
       });
 
@@ -293,11 +293,11 @@ describe("kubectl operations", () => {
               arguments: {
                 resourceType: "events",
                 namespace: "default",
-                output: "json"
+                output: "json",
               },
             },
           },
-          asResponseSchema(KubectlResponseSchema)
+          asResponseSchema(KubectlResponseSchema),
         );
       });
 
@@ -332,11 +332,11 @@ describe("kubectl operations", () => {
               arguments: {
                 resourceType: "events",
                 allNamespaces: true,
-                output: "json"
+                output: "json",
               },
             },
           },
-          asResponseSchema(KubectlResponseSchema)
+          asResponseSchema(KubectlResponseSchema),
         );
       });
 
@@ -357,11 +357,11 @@ describe("kubectl operations", () => {
                 resourceType: "events",
                 namespace: "default",
                 fieldSelector: "type=Normal",
-                output: "json"
+                output: "json",
               },
             },
           },
-          asResponseSchema(KubectlResponseSchema)
+          asResponseSchema(KubectlResponseSchema),
         );
       });
 
@@ -389,11 +389,11 @@ describe("kubectl operations", () => {
                 resourceType: "events",
                 namespace: "default",
                 sortBy: "type",
-                output: "json"
+                output: "json",
               },
             },
           },
-          asResponseSchema(KubectlResponseSchema)
+          asResponseSchema(KubectlResponseSchema),
         );
       });
 
@@ -413,11 +413,11 @@ describe("kubectl operations", () => {
               arguments: {
                 resourceType: "events",
                 namespace: "default",
-                output: "custom"
+                output: "custom",
               },
             },
           },
-          asResponseSchema(KubectlResponseSchema)
+          asResponseSchema(KubectlResponseSchema),
         );
       });
 

@@ -57,7 +57,7 @@ describe("kubernetes cronjob operations with kubectl commands", () => {
         },
         {
           capabilities: {},
-        }
+        },
       );
 
       await client.connect(transport);
@@ -80,7 +80,7 @@ describe("kubernetes cronjob operations with kubectl commands", () => {
           },
         },
         // @ts-ignore - Ignoring type error for now
-        z.any()
+        z.any(),
       );
 
       // Wait longer for namespace to be fully created
@@ -112,7 +112,7 @@ describe("kubernetes cronjob operations with kubectl commands", () => {
           },
         },
         // @ts-ignore - Ignoring type error for now
-        z.any()
+        z.any(),
       );
 
       // Close client connection
@@ -128,7 +128,7 @@ describe("kubernetes cronjob operations with kubectl commands", () => {
    */
   test("list cronjobs in namespace", async () => {
     // List CronJobs using kubectl_list
-    const listResult = await client.request(
+    const listResult = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -136,18 +136,18 @@ describe("kubernetes cronjob operations with kubectl commands", () => {
           arguments: {
             resourceType: "cronjobs",
             namespace: testNamespace,
-            output: "json"
+            output: "json",
           },
         },
       },
       // @ts-ignore - Ignoring type error for now
-      z.any()
-    ) as KubectlResponse;
+      z.any(),
+    )) as KubectlResponse;
 
     expect(listResult.content[0].type).toBe("text");
     const cronJobs = JSON.parse(listResult.content[0].text);
     expect(cronJobs).toBeDefined();
-    
+
     // Check the structure of the response
     if (cronJobs.items) {
       expect(Array.isArray(cronJobs.items)).toBe(true);
@@ -156,7 +156,10 @@ describe("kubernetes cronjob operations with kubectl commands", () => {
       expect(Array.isArray(cronJobs)).toBe(true);
     } else {
       // Unexpected format, log for debugging
-      console.log("Unexpected CronJobs response format:", JSON.stringify(cronJobs).substring(0, 300));
+      console.log(
+        "Unexpected CronJobs response format:",
+        JSON.stringify(cronJobs).substring(0, 300),
+      );
     }
   }, 60000); // 60 second timeout
 
@@ -171,7 +174,7 @@ describe("kubernetes cronjob operations with kubectl commands", () => {
 
       // Step 1: Create a new CronJob
       console.log(`Creating CronJob: ${cronJobName}`);
-      
+
       // Create CronJob manifest
       const cronJobManifest = `
 apiVersion: batch/v1
@@ -196,20 +199,20 @@ spec:
           restartPolicy: OnFailure
 `;
 
-      const createResult = await client.request(
+      const createResult = (await client.request(
         {
           method: "tools/call",
           params: {
             name: "kubectl_create",
             arguments: {
               manifest: cronJobManifest,
-              namespace: testNamespace
+              namespace: testNamespace,
             },
           },
         },
         // @ts-ignore - Ignoring type error for now
-        z.any()
-      ) as KubectlResponse;
+        z.any(),
+      )) as KubectlResponse;
 
       // Verify creation response
       expect(createResult.content[0].type).toBe("text");
@@ -220,7 +223,7 @@ spec:
       await sleep(5000);
 
       // Step 2: Verify CronJob appears in list
-      const listResult = await client.request(
+      const listResult = (await client.request(
         {
           method: "tools/call",
           params: {
@@ -228,23 +231,23 @@ spec:
             arguments: {
               resourceType: "cronjobs",
               namespace: testNamespace,
-              output: "json"
+              output: "json",
             },
           },
         },
         // @ts-ignore - Ignoring type error for now
-        z.any()
-      ) as KubectlResponse;
+        z.any(),
+      )) as KubectlResponse;
 
       //print the response
       console.log("List CronJobs response:", listResult.content[0].text);
       expect(listResult.content[0].type).toBe("text");
       const cronJobs = JSON.parse(listResult.content[0].text);
       expect(cronJobs).toBeDefined();
-      
+
       // Find our CronJob in the list - handle different response formats
       let createdCronJob;
-      
+
       if (cronJobs.items && Array.isArray(cronJobs.items)) {
         // Standard K8s API response
         createdCronJob = cronJobs.items.find((cj: any) => {
@@ -258,7 +261,7 @@ spec:
       } else if (Array.isArray(cronJobs)) {
         // Direct array response
         createdCronJob = cronJobs.find((cj: any) => {
-          if (typeof cj === 'string') {
+          if (typeof cj === "string") {
             return cj === cronJobName;
           } else if (cj.metadata && cj.metadata.name) {
             return cj.metadata.name === cronJobName;
@@ -268,15 +271,15 @@ spec:
           return false;
         });
       }
-      
+
       expect(createdCronJob).toBeDefined();
-      
+
       // Based on the actual response, we can only verify that the CronJob was created
       // The simplified API response doesn't include schedule or suspend values
       // Let's use kubectl_describe to get more detailed information
-      
+
       // Step 3: Describe the CronJob
-      const describeResult = await client.request(
+      const describeResult = (await client.request(
         {
           method: "tools/call",
           params: {
@@ -289,22 +292,25 @@ spec:
           },
         },
         // @ts-ignore - Ignoring type error for now
-        z.any()
-      ) as KubectlResponse;
+        z.any(),
+      )) as KubectlResponse;
 
       expect(describeResult.content[0].type).toBe("text");
       const describeOutput = describeResult.content[0].text;
-      console.log("Describe CronJob output excerpt:", describeOutput.substring(0, 300));
-      
+      console.log(
+        "Describe CronJob output excerpt:",
+        describeOutput.substring(0, 300),
+      );
+
       // Verify the schedule and suspended state from the describe output
       expect(describeOutput).toContain(cronJobName);
-      expect(describeOutput).toContain("*/5 * * * *");  // Schedule should appear in the describe output
+      expect(describeOutput).toContain("*/5 * * * *"); // Schedule should appear in the describe output
       expect(describeOutput).toContain("Suspend:"); // Check that suspend property exists
       expect(describeOutput).toMatch(/Suspend:.*True/i); // Check for suspend status (case-insensitive)
       expect(describeOutput).toContain("busybox");
 
       // Step 4: List Jobs (should be empty since CronJob is suspended)
-      const listJobsResult = await client.request(
+      const listJobsResult = (await client.request(
         {
           method: "tools/call",
           params: {
@@ -313,13 +319,13 @@ spec:
               resourceType: "jobs",
               namespace: testNamespace,
               labelSelector: `app=${cronJobName}`,
-              output: "json"
+              output: "json",
             },
           },
         },
         // @ts-ignore - Ignoring type error for now
-        z.any()
-      ) as KubectlResponse;
+        z.any(),
+      )) as KubectlResponse;
 
       expect(listJobsResult.content[0].type).toBe("text");
       const jobs = JSON.parse(listJobsResult.content[0].text);
@@ -329,7 +335,7 @@ spec:
       expect(jobs.items.length).toBe(0);
 
       // Step 5: Delete the CronJob
-      const deleteCronJobResult = await client.request(
+      const deleteCronJobResult = (await client.request(
         {
           method: "tools/call",
           params: {
@@ -342,14 +348,16 @@ spec:
           },
         },
         // @ts-ignore - Ignoring type error for now
-        z.any()
-      ) as KubectlResponse;
+        z.any(),
+      )) as KubectlResponse;
 
       expect(deleteCronJobResult.content[0].type).toBe("text");
-      expect(deleteCronJobResult.content[0].text).toContain(`"${cronJobName}" deleted`);
-      
+      expect(deleteCronJobResult.content[0].text).toContain(
+        `"${cronJobName}" deleted`,
+      );
+
       // We should rely on the cleanup in afterEach to remove all resources
     },
-    { timeout: 120000 } // 120 second timeout for increased reliability
+    { timeout: 120000 }, // 120 second timeout for increased reliability
   );
 });

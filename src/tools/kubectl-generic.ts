@@ -83,7 +83,7 @@ export async function kubectlGeneric(
     outputFormat?: string;
     flags?: Record<string, any>;
     args?: string[];
-  }
+  },
 ) {
   try {
     // Start building the kubectl command
@@ -152,7 +152,7 @@ export async function kubectlGeneric(
     } catch (error: any) {
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to execute kubectl command: ${error.message}`
+        `Failed to execute kubectl command: ${error.message}`,
       );
     }
   } catch (error: any) {
@@ -162,7 +162,7 @@ export async function kubectlGeneric(
 
     throw new McpError(
       ErrorCode.InternalError,
-      `Failed to execute kubectl command: ${error.message}`
+      `Failed to execute kubectl command: ${error.message}`,
     );
   }
 }

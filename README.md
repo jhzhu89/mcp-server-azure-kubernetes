@@ -25,7 +25,6 @@ This server uses Azure AD authentication with On-Behalf-Of (OBO) flow for secure
 #### Prerequisites
 
 1. **Azure AD Application Registration**: The server must be configured with an Azure AD application that has the following API permissions:
-
    - `https://management.azure.com/user_impersonation` (ARM API access)
    - `6dae42f8-4368-4678-94ff-3960e28e3630/user.read` (AKS dataplane access)
 

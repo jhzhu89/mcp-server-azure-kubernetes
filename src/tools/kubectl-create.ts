@@ -215,14 +215,14 @@ export async function kubectlCreate(
     annotations?: string[];
     schedule?: string;
     suspend?: boolean;
-  }
+  },
 ) {
   try {
     // Check if we have enough information to proceed
     if (!input.manifest && !input.filename && !input.resourceType) {
       throw new McpError(
         ErrorCode.InvalidRequest,
-        "Either manifest, filename, or resourceType must be provided"
+        "Either manifest, filename, or resourceType must be provided",
       );
     }
 
@@ -234,7 +234,7 @@ export async function kubectlCreate(
     ) {
       throw new McpError(
         ErrorCode.InvalidRequest,
-        `Name is required when creating a ${input.resourceType}`
+        `Name is required when creating a ${input.resourceType}`,
       );
     }
 
@@ -287,7 +287,7 @@ export async function kubectlCreate(
           if (!input.secretType) {
             throw new McpError(
               ErrorCode.InvalidRequest,
-              "secretType is required when creating a secret"
+              "secretType is required when creating a secret",
             );
           }
 
@@ -328,14 +328,14 @@ export async function kubectlCreate(
           if (!input.image) {
             throw new McpError(
               ErrorCode.InvalidRequest,
-              "image is required when creating a cronjob"
+              "image is required when creating a cronjob",
             );
           }
 
           if (!input.schedule) {
             throw new McpError(
               ErrorCode.InvalidRequest,
-              "schedule is required when creating a cronjob"
+              "schedule is required when creating a cronjob",
             );
           }
 
@@ -356,7 +356,7 @@ export async function kubectlCreate(
           if (!input.image) {
             throw new McpError(
               ErrorCode.InvalidRequest,
-              "image is required when creating a deployment"
+              "image is required when creating a deployment",
             );
           }
 
@@ -377,7 +377,7 @@ export async function kubectlCreate(
           if (!input.image) {
             throw new McpError(
               ErrorCode.InvalidRequest,
-              "image is required when creating a job"
+              "image is required when creating a job",
             );
           }
 
@@ -392,7 +392,7 @@ export async function kubectlCreate(
         default:
           throw new McpError(
             ErrorCode.InvalidRequest,
-            `Unsupported resource type: ${input.resourceType}`
+            `Unsupported resource type: ${input.resourceType}`,
           );
       }
     }
@@ -464,7 +464,7 @@ export async function kubectlCreate(
 
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to create resource: ${error.message}`
+        `Failed to create resource: ${error.message}`,
       );
     }
   } catch (error: any) {
@@ -474,7 +474,7 @@ export async function kubectlCreate(
 
     throw new McpError(
       ErrorCode.InternalError,
-      `Failed to execute kubectl create command: ${error.message}`
+      `Failed to execute kubectl create command: ${error.message}`,
     );
   }
 }

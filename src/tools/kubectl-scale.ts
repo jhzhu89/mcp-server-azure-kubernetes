@@ -59,7 +59,7 @@ export async function kubectlScale(
     namespace?: string;
     replicas: number;
     resourceType?: string;
-  }
+  },
 ) {
   try {
     const namespace = input.namespace || "default";
@@ -86,7 +86,7 @@ export async function kubectlScale(
     } catch (error: any) {
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to scale ${resourceType}: ${error.message}`
+        `Failed to scale ${resourceType}: ${error.message}`,
       );
     }
   } catch (error: any) {

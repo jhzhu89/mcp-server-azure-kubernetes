@@ -8,9 +8,9 @@ const KubectlResponseSchema = z.object({
   content: z.array(
     z.object({
       type: z.literal("text"),
-      text: z.string()
-    })
-  )
+      text: z.string(),
+    }),
+  ),
 });
 
 type KubectlResponse = z.infer<typeof KubectlResponseSchema>;
@@ -23,7 +23,7 @@ async function sleep(ms: number): Promise<void> {
 async function retry<T>(
   operation: () => Promise<T>,
   maxRetries: number = 2,
-  delayMs: number = 1000
+  delayMs: number = 1000,
 ): Promise<T> {
   let lastError: Error | unknown;
 
@@ -33,7 +33,7 @@ async function retry<T>(
     } catch (error) {
       lastError = error;
       console.warn(
-        `Attempt ${attempt}/${maxRetries} failed. Retrying in ${delayMs}ms...`
+        `Attempt ${attempt}/${maxRetries} failed. Retrying in ${delayMs}ms...`,
       );
       await sleep(delayMs);
     }
@@ -45,9 +45,10 @@ async function retry<T>(
 describe("kubectl_rollout command", () => {
   let transport: StdioClientTransport;
   let client: Client;
-  const testNamespace = "rollout-test-" + Math.random().toString(36).substring(2, 7);
+  const testNamespace =
+    "rollout-test-" + Math.random().toString(36).substring(2, 7);
   const deploymentName = "rollout-test-app";
-  
+
   beforeEach(async () => {
     transport = new StdioClientTransport({
       command: "bun",
@@ -62,12 +63,12 @@ describe("kubectl_rollout command", () => {
       },
       {
         capabilities: {},
-      }
+      },
     );
 
     await client.connect(transport);
     await sleep(1000);
-    
+
     // Create a test namespace
     await retry(async () => {
       await client.request(
@@ -77,34 +78,34 @@ describe("kubectl_rollout command", () => {
             name: "kubectl_create",
             arguments: {
               resourceType: "namespace",
-              name: testNamespace
+              name: testNamespace,
             },
           },
         },
-        z.any()
+        z.any(),
       );
     });
-    
+
     // Create a test deployment
     const deploymentManifest = {
       apiVersion: "apps/v1",
       kind: "Deployment",
       metadata: {
         name: deploymentName,
-        namespace: testNamespace
+        namespace: testNamespace,
       },
       spec: {
         replicas: 1,
         selector: {
           matchLabels: {
-            app: "rollout-test-app"
-          }
+            app: "rollout-test-app",
+          },
         },
         template: {
           metadata: {
             labels: {
-              app: "rollout-test-app"
-            }
+              app: "rollout-test-app",
+            },
           },
           spec: {
             containers: [
@@ -113,16 +114,16 @@ describe("kubectl_rollout command", () => {
                 image: "nginx:1.20.0", // Start with specific version
                 ports: [
                   {
-                    containerPort: 80
-                  }
-                ]
-              }
-            ]
-          }
-        }
-      }
+                    containerPort: 80,
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
     };
-    
+
     await retry(async () => {
       await client.request(
         {
@@ -131,38 +132,42 @@ describe("kubectl_rollout command", () => {
             name: "kubectl_apply",
             arguments: {
               manifest: JSON.stringify(deploymentManifest),
-              namespace: testNamespace
+              namespace: testNamespace,
             },
           },
         },
-        z.any()
+        z.any(),
       );
     });
-    
+
     // Wait for deployment to be ready
-    await retry(async () => {
-      const response = await client.request(
-        {
-          method: "tools/call",
-          params: {
-            name: "kubectl_rollout",
-            arguments: {
-              subCommand: "status",
-              resourceType: "deployment",
-              name: deploymentName,
-              namespace: testNamespace
+    await retry(
+      async () => {
+        const response = (await client.request(
+          {
+            method: "tools/call",
+            params: {
+              name: "kubectl_rollout",
+              arguments: {
+                subCommand: "status",
+                resourceType: "deployment",
+                name: deploymentName,
+                namespace: testNamespace,
+              },
             },
           },
-        },
-        z.any()
-      ) as KubectlResponse;
-      
-      if (!response.content[0].text.includes("successfully rolled out")) {
-        throw new Error("Deployment not ready yet");
-      }
-      
-      return response;
-    }, 3, 1500); // Optimized from 5 retries with 3000ms delay
+          z.any(),
+        )) as KubectlResponse;
+
+        if (!response.content[0].text.includes("successfully rolled out")) {
+          throw new Error("Deployment not ready yet");
+        }
+
+        return response;
+      },
+      3,
+      1500,
+    ); // Optimized from 5 retries with 3000ms delay
   });
 
   afterEach(async () => {
@@ -177,16 +182,16 @@ describe("kubectl_rollout command", () => {
               arguments: {
                 resourceType: "namespace",
                 name: testNamespace,
-                force: true
+                force: true,
               },
             },
           },
-          z.any()
+          z.any(),
         );
       } catch (e) {
         // Ignore error if namespace doesn't exist
       }
-      
+
       await transport.close();
       await sleep(1000);
     } catch (e) {
@@ -195,7 +200,7 @@ describe("kubectl_rollout command", () => {
   });
 
   test("kubectl_rollout can check status of a deployment", async () => {
-    const result = await client.request(
+    const result = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -204,19 +209,19 @@ describe("kubectl_rollout command", () => {
             subCommand: "status",
             resourceType: "deployment",
             name: deploymentName,
-            namespace: testNamespace
+            namespace: testNamespace,
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     expect(result.content[0].type).toBe("text");
     expect(result.content[0].text).toContain("successfully rolled out");
   });
 
   test("kubectl_rollout can restart a deployment", async () => {
-    const result = await client.request(
+    const result = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -225,45 +230,49 @@ describe("kubectl_rollout command", () => {
             subCommand: "restart",
             resourceType: "deployment",
             name: deploymentName,
-            namespace: testNamespace
+            namespace: testNamespace,
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     expect(result.content[0].type).toBe("text");
     expect(result.content[0].text).toContain("restarted");
-    
+
     // Wait for the restart to complete
-    await retry(async () => {
-      const response = await client.request(
-        {
-          method: "tools/call",
-          params: {
-            name: "kubectl_rollout",
-            arguments: {
-              subCommand: "status",
-              resourceType: "deployment",
-              name: deploymentName,
-              namespace: testNamespace
+    await retry(
+      async () => {
+        const response = (await client.request(
+          {
+            method: "tools/call",
+            params: {
+              name: "kubectl_rollout",
+              arguments: {
+                subCommand: "status",
+                resourceType: "deployment",
+                name: deploymentName,
+                namespace: testNamespace,
+              },
             },
           },
-        },
-        z.any()
-      ) as KubectlResponse;
-      
-      if (!response.content[0].text.includes("successfully rolled out")) {
-        throw new Error("Deployment restart not complete");
-      }
-      
-      return response;
-    }, 3, 1500); // Optimized from 5 retries with 3000ms delay
+          z.any(),
+        )) as KubectlResponse;
+
+        if (!response.content[0].text.includes("successfully rolled out")) {
+          throw new Error("Deployment restart not complete");
+        }
+
+        return response;
+      },
+      3,
+      1500,
+    ); // Optimized from 5 retries with 3000ms delay
   });
 
   test("kubectl_rollout can pause and resume a deployment", async () => {
     // Pause the deployment
-    const pauseResult = await client.request(
+    const pauseResult = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -272,18 +281,18 @@ describe("kubectl_rollout command", () => {
             subCommand: "pause",
             resourceType: "deployment",
             name: deploymentName,
-            namespace: testNamespace
+            namespace: testNamespace,
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     expect(pauseResult.content[0].type).toBe("text");
     expect(pauseResult.content[0].text).toContain("paused");
-    
+
     // Verify it's paused by checking the deployment
-    const getResult = await client.request(
+    const getResult = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -292,18 +301,18 @@ describe("kubectl_rollout command", () => {
             resourceType: "deployment",
             name: deploymentName,
             namespace: testNamespace,
-            output: "json"
+            output: "json",
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     const deployment = JSON.parse(getResult.content[0].text);
     expect(deployment.spec.paused).toBe(true);
-    
+
     // Resume the deployment
-    const resumeResult = await client.request(
+    const resumeResult = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -312,18 +321,18 @@ describe("kubectl_rollout command", () => {
             subCommand: "resume",
             resourceType: "deployment",
             name: deploymentName,
-            namespace: testNamespace
+            namespace: testNamespace,
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     expect(resumeResult.content[0].type).toBe("text");
     expect(resumeResult.content[0].text).toContain("resumed");
-    
+
     // Verify it's resumed
-    const getUpdatedResult = await client.request(
+    const getUpdatedResult = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -332,13 +341,13 @@ describe("kubectl_rollout command", () => {
             resourceType: "deployment",
             name: deploymentName,
             namespace: testNamespace,
-            output: "json"
+            output: "json",
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     const updatedDeployment = JSON.parse(getUpdatedResult.content[0].text);
     // Check if paused is either false or undefined (both mean not paused)
     expect(updatedDeployment.spec.paused || false).toBe(false);
@@ -346,7 +355,7 @@ describe("kubectl_rollout command", () => {
 
   test("kubectl_rollout can show history of a deployment", async () => {
     // Get the rollout history
-    const historyResult = await client.request(
+    const historyResult = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -355,13 +364,13 @@ describe("kubectl_rollout command", () => {
             subCommand: "history",
             resourceType: "deployment",
             name: deploymentName,
-            namespace: testNamespace
+            namespace: testNamespace,
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     expect(historyResult.content[0].type).toBe("text");
     expect(historyResult.content[0].text).toContain("REVISION");
     // There should be at least one revision
@@ -370,7 +379,7 @@ describe("kubectl_rollout command", () => {
 
   test("kubectl_rollout handles errors gracefully", async () => {
     const nonExistentResource = "non-existent-deployment-" + Date.now();
-    
+
     try {
       await client.request(
         {
@@ -381,13 +390,13 @@ describe("kubectl_rollout command", () => {
               subCommand: "status",
               resourceType: "deployment",
               name: nonExistentResource,
-              namespace: testNamespace
+              namespace: testNamespace,
             },
           },
         },
-        z.any()
+        z.any(),
       );
-      
+
       // If we get here, the test has failed
       expect(true).toBe(false); // This should not execute
     } catch (error: any) {
@@ -400,7 +409,7 @@ describe("kubectl_rollout command", () => {
 describe("kubectl_rollout command error handling", () => {
   let transport: StdioClientTransport;
   let client: Client;
-  
+
   beforeEach(async () => {
     transport = new StdioClientTransport({
       command: "bun",
@@ -415,7 +424,7 @@ describe("kubectl_rollout command error handling", () => {
       },
       {
         capabilities: {},
-      }
+      },
     );
 
     await client.connect(transport);
@@ -433,7 +442,7 @@ describe("kubectl_rollout command error handling", () => {
 
   test("kubectl_rollout handles errors gracefully", async () => {
     const nonExistentResource = "non-existent-deployment-" + Date.now();
-    
+
     try {
       await client.request(
         {
@@ -444,13 +453,13 @@ describe("kubectl_rollout command error handling", () => {
               subCommand: "status",
               resourceType: "deployment",
               name: nonExistentResource,
-              namespace: "default"
+              namespace: "default",
             },
           },
         },
-        KubectlResponseSchema
+        KubectlResponseSchema,
       );
-      
+
       // If we get here, the test has failed
       expect(true).toBe(false); // This should not execute
     } catch (error: any) {
@@ -472,13 +481,13 @@ describe("kubectl_rollout command error handling", () => {
               subCommand: "status",
               resourceType: "deployment",
               name: "nginx", // Likely doesn't exist but gives predictable error
-              namespace: "default"
+              namespace: "default",
             },
           },
         },
-        KubectlResponseSchema
+        KubectlResponseSchema,
       );
-      
+
       // If we get here, it might be because the deployment actually exists
       // So we don't fail the test, just note it
     } catch (error: any) {
@@ -486,4 +495,4 @@ describe("kubectl_rollout command error handling", () => {
       expect(error.message).toBeTruthy();
     }
   });
-}); 
+});

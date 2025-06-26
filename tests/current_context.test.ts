@@ -36,7 +36,7 @@ describe("kubernetes current context operations", () => {
         },
         {
           capabilities: {},
-        }
+        },
       );
       await client.connect(transport);
       // Wait for connection to be fully established
@@ -78,7 +78,7 @@ describe("kubernetes current context operations", () => {
           },
         },
       },
-      asResponseSchema(GetCurrentContextResponseSchema)
+      asResponseSchema(GetCurrentContextResponseSchema),
     );
 
     // Verify the response structure
@@ -112,7 +112,7 @@ describe("kubernetes current context operations", () => {
           },
         },
       },
-      asResponseSchema(GetCurrentContextResponseSchema)
+      asResponseSchema(GetCurrentContextResponseSchema),
     );
 
     // Verify the response structure

@@ -6,7 +6,7 @@ export enum MultiTenantErrorCode {
   KUBECONFIG_GENERATION_FAILED = "KUBECONFIG_GENERATION_FAILED",
   JWT_VALIDATION_FAILED = "JWT_VALIDATION_FAILED",
   AZURE_OBO_FAILED = "AZURE_OBO_FAILED",
-  TEMP_FILE_CREATION_FAILED = "TEMP_FILE_CREATION_FAILED"
+  TEMP_FILE_CREATION_FAILED = "TEMP_FILE_CREATION_FAILED",
 }
 
 export class MultiTenantError extends Error {
@@ -15,10 +15,10 @@ export class MultiTenantError extends Error {
     message: string,
     public userObjectId?: string,
     public tenantId?: string,
-    public correlationId?: string
+    public correlationId?: string,
   ) {
     super(message);
-    this.name = 'MultiTenantError';
+    this.name = "MultiTenantError";
   }
 
   toPublicMessage(): string {

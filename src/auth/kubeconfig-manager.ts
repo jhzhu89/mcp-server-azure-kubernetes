@@ -24,6 +24,8 @@ interface KubeconfigCacheEntry {
 export class KubeconfigManager extends TokenManagerBase {
   private kubeconfigCache: LRUCache<string, KubeconfigCacheEntry>;
   private activeKubeconfigs: Set<string> = new Set();
+  private activeRequests: Map<string, Promise<KubeconfigCacheEntry>> =
+    new Map();
   private azureAuthManager: AzureAuthManager;
 
   constructor(config: MultiTenantConfig, azureAuthManager: AzureAuthManager) {
@@ -43,7 +45,7 @@ export class KubeconfigManager extends TokenManagerBase {
 
   async getOrCreateKubernetesManager(
     userContext: UserContext,
-    resourceId: ResourceId
+    resourceId: ResourceId,
   ): Promise<{ kubeconfigPath: string; k8sManager: KubernetesManager }> {
     const cacheKey = buildCacheKey(
       "kubeconfig",
@@ -51,7 +53,7 @@ export class KubeconfigManager extends TokenManagerBase {
       userContext.userObjectId,
       resourceId.subscriptionId,
       resourceId.resourceGroup,
-      resourceId.clusterName
+      resourceId.clusterName,
     );
 
     const cached = this.kubeconfigCache.get(cacheKey);
@@ -63,6 +65,28 @@ export class KubeconfigManager extends TokenManagerBase {
       };
     }
 
+    let activeRequest = this.activeRequests.get(cacheKey);
+    if (!activeRequest) {
+      activeRequest = this.executeKubeconfigCreation(userContext, resourceId);
+      this.activeRequests.set(cacheKey, activeRequest);
+    }
+
+    try {
+      const result = await activeRequest;
+      this.kubeconfigCache.set(cacheKey, result);
+      return {
+        kubeconfigPath: result.kubeconfigPath,
+        k8sManager: result.k8sManager,
+      };
+    } finally {
+      this.activeRequests.delete(cacheKey);
+    }
+  }
+
+  private async executeKubeconfigCreation(
+    userContext: UserContext,
+    resourceId: ResourceId,
+  ): Promise<KubeconfigCacheEntry> {
     const aksTokenResult = await this.getAksToken(userContext, resourceId);
     const tokenHash = crypto
       .createHash("sha256")
@@ -72,7 +96,7 @@ export class KubeconfigManager extends TokenManagerBase {
     const kubeconfigPath = buildKubeconfigPath(
       userContext.tenantId,
       userContext.userObjectId,
-      tokenHash
+      tokenHash,
     );
 
     let finalPath: string;
@@ -82,35 +106,32 @@ export class KubeconfigManager extends TokenManagerBase {
       const kubeconfigContent = await this.generateKubeconfigContent(
         userContext,
         resourceId,
-        aksTokenResult.token
+        aksTokenResult.token,
       );
       finalPath = await this.createSecureTempKubeconfig(
         kubeconfigContent,
-        kubeconfigPath
+        kubeconfigPath,
       );
     }
 
     const k8sManager = new KubernetesManager(finalPath);
 
-    const entry: KubeconfigCacheEntry = {
+    return {
       kubeconfigPath: finalPath,
       k8sManager,
       expiresAt: aksTokenResult.expiresAt,
     };
-
-    this.kubeconfigCache.set(cacheKey, entry);
-    return { kubeconfigPath: finalPath, k8sManager };
   }
 
   private async getAksToken(
     userContext: UserContext,
-    resourceId: ResourceId
+    resourceId: ResourceId,
   ): Promise<{ token: string; expiresAt: number }> {
     try {
       const tokenResult = await this.performOboFlow(
         userContext.accessToken,
         "6dae42f8-4368-4678-94ff-3960e28e3630/user.read",
-        userContext.tenantId
+        userContext.tenantId,
       );
       return {
         token: tokenResult.accessToken,
@@ -121,7 +142,7 @@ export class KubeconfigManager extends TokenManagerBase {
         MultiTenantErrorCode.TOKEN_ACQUISITION_FAILED,
         `Failed to acquire AKS token: ${error}`,
         userContext.userObjectId,
-        userContext.tenantId
+        userContext.tenantId,
       );
     }
   }
@@ -129,7 +150,7 @@ export class KubeconfigManager extends TokenManagerBase {
   private async generateKubeconfigContent(
     userContext: UserContext,
     resourceId: ResourceId,
-    aksToken: string
+    aksToken: string,
   ): Promise<string> {
     const armTokenResult = await this.azureAuthManager.getArmToken(userContext);
 
@@ -142,14 +163,14 @@ export class KubeconfigManager extends TokenManagerBase {
 
     const client = new ContainerServiceClient(
       credential,
-      resourceId.subscriptionId
+      resourceId.subscriptionId,
     );
 
     try {
       const userCredentials =
         await client.managedClusters.listClusterUserCredentials(
           resourceId.resourceGroup,
-          resourceId.clusterName
+          resourceId.clusterName,
         );
 
       if (
@@ -201,21 +222,21 @@ export class KubeconfigManager extends TokenManagerBase {
         MultiTenantErrorCode.KUBECONFIG_GENERATION_FAILED,
         `Failed to generate kubeconfig: ${error}`,
         userContext.userObjectId,
-        userContext.tenantId
+        userContext.tenantId,
       );
     }
   }
 
   private async createSecureTempKubeconfig(
     kubeconfigContent: string,
-    finalPath: string
+    finalPath: string,
   ): Promise<string> {
     try {
       await fs.access("/dev/shm", fs.constants.W_OK);
     } catch (error) {
       throw new MultiTenantError(
         MultiTenantErrorCode.TEMP_FILE_CREATION_FAILED,
-        "/dev/shm is not available for secure file storage"
+        "/dev/shm is not available for secure file storage",
       );
     }
 
@@ -240,7 +261,7 @@ export class KubeconfigManager extends TokenManagerBase {
       await this.safeDelete(tempPath);
       throw new MultiTenantError(
         MultiTenantErrorCode.TEMP_FILE_CREATION_FAILED,
-        `Failed to create secure kubeconfig: ${error}`
+        `Failed to create secure kubeconfig: ${error}`,
       );
     }
   }
@@ -272,7 +293,7 @@ export class KubeconfigManager extends TokenManagerBase {
     const cleanup = async () => {
       this.kubeconfigCache.clear();
       const promises = Array.from(this.activeKubeconfigs).map((path) =>
-        this.safeDelete(path)
+        this.safeDelete(path),
       );
       await Promise.allSettled(promises);
     };
@@ -298,7 +319,7 @@ export class KubeconfigManager extends TokenManagerBase {
 
   async cleanupTenant(
     userContext: UserContext,
-    resourceId: ResourceId
+    resourceId: ResourceId,
   ): Promise<void> {
     const cacheKey = buildCacheKey(
       "kubeconfig",
@@ -306,7 +327,7 @@ export class KubeconfigManager extends TokenManagerBase {
       userContext.userObjectId,
       resourceId.subscriptionId,
       resourceId.resourceGroup,
-      resourceId.clusterName
+      resourceId.clusterName,
     );
     const entry = this.kubeconfigCache.get(cacheKey);
 
@@ -318,5 +339,6 @@ export class KubeconfigManager extends TokenManagerBase {
 
   async cleanupAllTenants(): Promise<void> {
     this.kubeconfigCache.clear();
+    this.activeRequests.clear();
   }
 }

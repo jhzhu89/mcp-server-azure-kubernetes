@@ -38,7 +38,7 @@ describe("kubernetes set current context operations", () => {
         },
         {
           capabilities: {},
-        }
+        },
       );
       await client.connect(transport);
       // Wait for connection to be fully established
@@ -56,7 +56,7 @@ describe("kubernetes set current context operations", () => {
             },
           },
         },
-        asResponseSchema(SetCurrentContextResponseSchema)
+        asResponseSchema(SetCurrentContextResponseSchema),
       );
 
       const contextData = JSON.parse(result.content[0].text);
@@ -88,7 +88,7 @@ describe("kubernetes set current context operations", () => {
               },
             },
           },
-          asResponseSchema(SetCurrentContextResponseSchema)
+          asResponseSchema(SetCurrentContextResponseSchema),
         );
       }
 
@@ -116,14 +116,14 @@ describe("kubernetes set current context operations", () => {
           },
         },
       },
-      asResponseSchema(SetCurrentContextResponseSchema)
+      asResponseSchema(SetCurrentContextResponseSchema),
     );
 
     const contextsData = JSON.parse(contextsResult.content[0].text);
 
     // Find a context that is not the current one
     const otherContext = contextsData.contexts.find(
-      (context: any) => !context.isCurrent
+      (context: any) => !context.isCurrent,
     );
 
     // Skip the test if there's only one context available
@@ -146,7 +146,7 @@ describe("kubernetes set current context operations", () => {
           },
         },
       },
-      asResponseSchema(SetCurrentContextResponseSchema)
+      asResponseSchema(SetCurrentContextResponseSchema),
     );
 
     // Verify the response structure
@@ -172,11 +172,11 @@ describe("kubernetes set current context operations", () => {
           },
         },
       },
-      asResponseSchema(SetCurrentContextResponseSchema)
+      asResponseSchema(SetCurrentContextResponseSchema),
     );
 
     const verifyData = JSON.parse(verifyResult.content[0].text);
-    
+
     // Handle both name formats - short name and ARN format
     // Extract the short name from the ARN if necessary
     let shortName = otherContext.name;
@@ -186,10 +186,11 @@ describe("kubernetes set current context operations", () => {
         shortName = parts[1];
       }
     }
-    
+
     // Allow the test to pass with either format of the name
-    const contextMatches = verifyData.currentContext === otherContext.name || 
-                          verifyData.currentContext === shortName;
+    const contextMatches =
+      verifyData.currentContext === otherContext.name ||
+      verifyData.currentContext === shortName;
     expect(contextMatches).toBe(true);
 
     console.log("Context successfully changed and verified");

@@ -87,7 +87,7 @@ export const PortForwardResponseSchema = z.object({
     z.object({
       success: z.boolean(),
       message: z.string(),
-    })
+    }),
   ),
 });
 
@@ -96,7 +96,7 @@ export const ScaleDeploymentResponseSchema = z.object({
     z.object({
       success: z.boolean(),
       message: z.string(),
-    })
+    }),
   ),
 });
 
@@ -105,7 +105,7 @@ export const DeleteCronJobResponseSchema = z.object({
     z.object({
       success: z.boolean(),
       message: z.string(),
-    })
+    }),
   ),
 });
 
@@ -114,7 +114,7 @@ export const CreateConfigMapResponseSchema = z.object({
     z.object({
       success: z.boolean(),
       message: z.string(),
-    })
+    }),
   ),
 });
 
@@ -124,7 +124,7 @@ export const GetConfigMapResponseSchema = z.object({
       success: z.boolean(),
       message: z.string(),
       data: z.record(z.string(), z.string()).optional(),
-    })
+    }),
   ),
 });
 
@@ -133,7 +133,7 @@ export const UpdateConfigMapResponseSchema = z.object({
     z.object({
       success: z.boolean(),
       message: z.string(),
-    })
+    }),
   ),
 });
 
@@ -142,7 +142,7 @@ export const DeleteConfigMapResponseSchema = z.object({
     z.object({
       success: z.boolean(),
       message: z.string(),
-    })
+    }),
   ),
 });
 

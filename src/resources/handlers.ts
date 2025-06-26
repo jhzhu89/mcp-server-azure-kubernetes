@@ -40,7 +40,7 @@ export const listResources = async () => {
 
 export const readResource = async (
   k8sManager: KubernetesManager,
-  request: { params: { uri: string } }
+  request: { params: { uri: string } },
 ) => {
   try {
     const uri = request.params.uri;
@@ -110,14 +110,14 @@ export const readResource = async (
       default:
         throw new McpError(
           ErrorCode.InvalidRequest,
-          `Unsupported resource type: ${resourceType}`
+          `Unsupported resource type: ${resourceType}`,
         );
     }
   } catch (error) {
     if (error instanceof McpError) throw error;
     throw new McpError(
       ErrorCode.InternalError,
-      `Failed to read resource: ${error}`
+      `Failed to read resource: ${error}`,
     );
   }
 };

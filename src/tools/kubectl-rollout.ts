@@ -88,7 +88,7 @@ export async function kubectlRollout(
     toRevision?: number;
     timeout?: string;
     watch?: boolean;
-  }
+  },
 ) {
   try {
     const namespace = input.namespace || "default";
@@ -154,7 +154,7 @@ export async function kubectlRollout(
     } catch (error: any) {
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to execute rollout command: ${error.message}`
+        `Failed to execute rollout command: ${error.message}`,
       );
     }
   } catch (error: any) {
@@ -164,7 +164,7 @@ export async function kubectlRollout(
 
     throw new McpError(
       ErrorCode.InternalError,
-      `Failed to execute kubectl rollout command: ${error.message}`
+      `Failed to execute kubectl rollout command: ${error.message}`,
     );
   }
 }

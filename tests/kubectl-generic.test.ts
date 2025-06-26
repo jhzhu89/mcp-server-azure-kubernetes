@@ -19,7 +19,7 @@ async function sleep(ms: number): Promise<void> {
 async function retry<T>(
   operation: () => Promise<T>,
   maxRetries: number = 2,
-  delayMs: number = 1000
+  delayMs: number = 1000,
 ): Promise<T> {
   let lastError: Error | unknown;
 
@@ -29,7 +29,7 @@ async function retry<T>(
     } catch (error) {
       lastError = error;
       console.warn(
-        `Attempt ${attempt}/${maxRetries} failed. Retrying in ${delayMs}ms...`
+        `Attempt ${attempt}/${maxRetries} failed. Retrying in ${delayMs}ms...`,
       );
       await sleep(delayMs);
     }
@@ -41,7 +41,8 @@ async function retry<T>(
 describe("kubectl_generic command", () => {
   let transport: StdioClientTransport;
   let client: Client;
-  const testNamespace = "generic-test-" + Math.random().toString(36).substring(2, 7);
+  const testNamespace =
+    "generic-test-" + Math.random().toString(36).substring(2, 7);
 
   beforeEach(async () => {
     transport = new StdioClientTransport({
@@ -57,7 +58,7 @@ describe("kubectl_generic command", () => {
       },
       {
         capabilities: {},
-      }
+      },
     );
 
     await client.connect(transport);
@@ -76,11 +77,11 @@ describe("kubectl_generic command", () => {
               arguments: {
                 resourceType: "namespace",
                 name: testNamespace,
-                force: true
+                force: true,
               },
             },
           },
-          KubectlResponseSchema
+          KubectlResponseSchema,
         );
       } catch (e) {
         // Ignore error if namespace doesn't exist
@@ -95,7 +96,7 @@ describe("kubectl_generic command", () => {
 
   test("kubectl_generic can create a namespace", async () => {
     const result = await retry(async () => {
-      const response = await client.request(
+      const response = (await client.request(
         {
           method: "tools/call",
           params: {
@@ -103,33 +104,33 @@ describe("kubectl_generic command", () => {
             arguments: {
               command: "create",
               resourceType: "namespace",
-              name: testNamespace
+              name: testNamespace,
             },
           },
         },
-        z.any()
-      ) as KubectlResponse;
+        z.any(),
+      )) as KubectlResponse;
       return response;
     });
 
     expect(result.content[0].type).toBe("text");
     expect(result.content[0].text).toContain(`created`);
-    
+
     // Verify the namespace was created
-    const getResult = await client.request(
+    const getResult = (await client.request(
       {
         method: "tools/call",
         params: {
           name: "kubectl_get",
           arguments: {
             resourceType: "namespace",
-            name: testNamespace
+            name: testNamespace,
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     expect(getResult.content[0].type).toBe("text");
     expect(getResult.content[0].text).toContain(testNamespace);
   });
@@ -137,7 +138,7 @@ describe("kubectl_generic command", () => {
   test("kubectl_generic can get resource with flags", async () => {
     // First, let's create a configmap to test
     const configMapName = "generic-test-cm";
-    
+
     // Create a configmap using kubectl_generic
     await retry(async () => {
       await client.request(
@@ -152,16 +153,16 @@ describe("kubectl_generic command", () => {
               namespace: "default",
               flags: {
                 "from-literal": "key1=value1",
-              }
+              },
             },
           },
         },
-        z.any()
+        z.any(),
       );
     });
-    
+
     // Now get the configmap using kubectl_generic with output flag
-    const getResult = await client.request(
+    const getResult = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -171,18 +172,18 @@ describe("kubectl_generic command", () => {
             resourceType: "configmap",
             name: configMapName,
             namespace: "default",
-            outputFormat: "json"
+            outputFormat: "json",
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     expect(getResult.content[0].type).toBe("text");
     const configMap = JSON.parse(getResult.content[0].text);
     expect(configMap.metadata.name).toBe(configMapName);
     expect(configMap.data.key1).toBe("value1");
-    
+
     // Clean up
     await client.request(
       {
@@ -192,17 +193,17 @@ describe("kubectl_generic command", () => {
           arguments: {
             resourceType: "configmap",
             name: configMapName,
-            namespace: "default"
+            namespace: "default",
           },
         },
       },
-      z.any()
+      z.any(),
     );
   });
 
   test("kubectl_generic can handle additional arguments", async () => {
     // Get all pods in kube-system namespace with custom arguments
-    const result = await client.request(
+    const result = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -212,13 +213,13 @@ describe("kubectl_generic command", () => {
             resourceType: "pods",
             namespace: "kube-system",
             outputFormat: "wide",
-            args: ["-l", "k8s-app=kube-dns"]  // Label selector as additional args
+            args: ["-l", "k8s-app=kube-dns"], // Label selector as additional args
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     expect(result.content[0].type).toBe("text");
     // The response should include pods with the label k8s-app=kube-dns
     // This is usually coredns in most K8s clusters
@@ -227,7 +228,7 @@ describe("kubectl_generic command", () => {
 
   test("kubectl_generic can handle multiple operations in sequence", async () => {
     const testConfigMap = "sequence-test-cm";
-    
+
     // 1. Create a configmap
     await client.request(
       {
@@ -240,16 +241,16 @@ describe("kubectl_generic command", () => {
             name: testConfigMap,
             namespace: "default",
             flags: {
-              "from-literal": "foo=bar"
-            }
+              "from-literal": "foo=bar",
+            },
           },
         },
       },
-      z.any()
+      z.any(),
     );
-    
+
     // 2. Get the configmap
-    const getResult = await client.request(
+    const getResult = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -259,16 +260,16 @@ describe("kubectl_generic command", () => {
             resourceType: "configmap",
             name: testConfigMap,
             namespace: "default",
-            outputFormat: "json"
+            outputFormat: "json",
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     const configMap = JSON.parse(getResult.content[0].text);
     expect(configMap.data.foo).toBe("bar");
-    
+
     // 3. Annotate the configmap
     await client.request(
       {
@@ -280,15 +281,15 @@ describe("kubectl_generic command", () => {
             resourceType: "configmap",
             name: testConfigMap,
             namespace: "default",
-            args: ["test-annotation=true"]
+            args: ["test-annotation=true"],
           },
         },
       },
-      z.any()
+      z.any(),
     );
-    
+
     // 4. Get the configmap again to check annotation
-    const getUpdatedResult = await client.request(
+    const getUpdatedResult = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -298,18 +299,20 @@ describe("kubectl_generic command", () => {
             resourceType: "configmap",
             name: testConfigMap,
             namespace: "default",
-            outputFormat: "json"
+            outputFormat: "json",
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     const updatedConfigMap = JSON.parse(getUpdatedResult.content[0].text);
-    expect(updatedConfigMap.metadata.annotations["test-annotation"]).toBe("true");
-    
+    expect(updatedConfigMap.metadata.annotations["test-annotation"]).toBe(
+      "true",
+    );
+
     // 5. Delete the configmap
-    const deleteResult = await client.request(
+    const deleteResult = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -318,19 +321,19 @@ describe("kubectl_generic command", () => {
             command: "delete",
             resourceType: "configmap",
             name: testConfigMap,
-            namespace: "default"
+            namespace: "default",
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     expect(deleteResult.content[0].text).toContain("deleted");
   });
 
   test("kubectl_generic handles errors gracefully", async () => {
     const nonExistentResource = "non-existent-resource-" + Date.now();
-    
+
     try {
       await client.request(
         {
@@ -341,13 +344,13 @@ describe("kubectl_generic command", () => {
               command: "get",
               resourceType: "pod",
               name: nonExistentResource,
-              namespace: "default"
+              namespace: "default",
             },
           },
         },
-        z.any()
+        z.any(),
       );
-      
+
       // If we get here, the test has failed
       expect(true).toBe(false); // This should not execute
     } catch (error: any) {
@@ -355,4 +358,4 @@ describe("kubectl_generic command", () => {
       expect(error.message).toContain("Failed to execute kubectl command");
     }
   });
-}); 
+});

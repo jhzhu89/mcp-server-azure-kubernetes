@@ -87,7 +87,7 @@ export async function kubectlGet(
     labelSelector?: string;
     fieldSelector?: string;
     sortBy?: string;
-  }
+  },
 ) {
   try {
     const resourceType = input.resourceType.toLowerCase();
@@ -244,7 +244,7 @@ export async function kubectlGet(
                   status: "not_found",
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -254,13 +254,13 @@ export async function kubectlGet(
 
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get resource: ${error.message}`
+        `Failed to get resource: ${error.message}`,
       );
     }
   } catch (error: any) {
     throw new McpError(
       ErrorCode.InternalError,
-      `Failed to execute kubectl get command: ${error.message}`
+      `Failed to execute kubectl get command: ${error.message}`,
     );
   }
 }
@@ -289,7 +289,7 @@ function getResourceStatus(resource: any): string {
   // Node status
   if (resource.status?.conditions) {
     const readyCondition = resource.status.conditions.find(
-      (c: any) => c.type === "Ready"
+      (c: any) => c.type === "Ready",
     );
     if (readyCondition) {
       return readyCondition.status === "True" ? "Ready" : "NotReady";

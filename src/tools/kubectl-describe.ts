@@ -60,7 +60,7 @@ export async function kubectlDescribe(
     name: string;
     namespace?: string;
     allNamespaces?: boolean;
-  }
+  },
 ) {
   try {
     const resourceType = input.resourceType.toLowerCase();
@@ -111,7 +111,7 @@ export async function kubectlDescribe(
                   status: "not_found",
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -121,13 +121,13 @@ export async function kubectlDescribe(
 
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to describe resource: ${error.message}`
+        `Failed to describe resource: ${error.message}`,
       );
     }
   } catch (error: any) {
     throw new McpError(
       ErrorCode.InternalError,
-      `Failed to execute kubectl describe command: ${error.message}`
+      `Failed to execute kubectl describe command: ${error.message}`,
     );
   }
 }

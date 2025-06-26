@@ -68,7 +68,7 @@ describe("kubernetes server operations", () => {
         },
         {
           capabilities: {},
-        }
+        },
       );
       await client.connect(transport);
       // Wait for connection to be fully established
@@ -104,7 +104,7 @@ describe("kubernetes server operations", () => {
       {
         method: "tools/list",
       },
-      asResponseSchema(ListToolsResponseSchema)
+      asResponseSchema(ListToolsResponseSchema),
     );
     expect(toolsList.tools).toBeDefined();
     expect(toolsList.tools.length).toBeGreaterThan(0);
@@ -124,11 +124,11 @@ describe("kubernetes server operations", () => {
           name: "kubectl_list",
           arguments: {
             resourceType: "namespaces",
-            output: "json"
+            output: "json",
           },
         },
       },
-      asResponseSchema(KubectlResponseSchema) // Use KubectlResponseSchema for all kubectl commands
+      asResponseSchema(KubectlResponseSchema), // Use KubectlResponseSchema for all kubectl commands
     );
     expect(namespacesResult.content[0].type).toBe("text");
     const namespaces = JSON.parse(namespacesResult.content[0].text);
@@ -144,11 +144,11 @@ describe("kubernetes server operations", () => {
           name: "kubectl_list",
           arguments: {
             resourceType: "nodes",
-            output: "json"
+            output: "json",
           },
         },
       },
-      asResponseSchema(KubectlResponseSchema)
+      asResponseSchema(KubectlResponseSchema),
     );
     expect(listNodesResult.content[0].type).toBe("text");
     const nodes = JSON.parse(listNodesResult.content[0].text);
@@ -157,15 +157,17 @@ describe("kubernetes server operations", () => {
 
     // Describe a node - but only if we have valid nodes
     let validNodeFound = false;
-    
+
     if (nodes.items && nodes.items.length > 0) {
       // Look for a node with a proper name
       for (const nodeItem of nodes.items) {
         if (nodeItem && nodeItem.metadata && nodeItem.metadata.name) {
           const nodeName = nodeItem.metadata.name;
-          console.log(`Found valid node: ${nodeName}, proceeding with describe test`);
+          console.log(
+            `Found valid node: ${nodeName}, proceeding with describe test`,
+          );
           validNodeFound = true;
-          
+
           const describeNodeResult = await client.request(
             {
               method: "tools/call",
@@ -177,36 +179,45 @@ describe("kubernetes server operations", () => {
                 },
               },
             },
-            asResponseSchema(KubectlResponseSchema)
+            asResponseSchema(KubectlResponseSchema),
           );
 
           expect(describeNodeResult.content[0].type).toBe("text");
           const nodeDetailsText = describeNodeResult.content[0].text;
-          
+
           // Check if the output contains typical node information
           expect(nodeDetailsText).toContain(nodeName);
-          
+
           // Verify that common node information sections are present
-          const expectedSections = ["Name:", "Labels:", "Annotations:", "Conditions:"];
+          const expectedSections = [
+            "Name:",
+            "Labels:",
+            "Annotations:",
+            "Conditions:",
+          ];
           for (const section of expectedSections) {
             expect(nodeDetailsText).toContain(section);
           }
-          
+
           // We've successfully tested one node, no need to test more
           break;
         }
       }
     }
-    
+
     if (!validNodeFound) {
-      console.log("No valid nodes found to describe - skipping node description test");
+      console.log(
+        "No valid nodes found to describe - skipping node description test",
+      );
     }
   });
 
   // Describe a non-existent node
   test("describe non-existent node", async () => {
     const nonExistentNodeName = "non-existent-node-" + Date.now();
-    console.log(`Attempting to describe non-existent node ${nonExistentNodeName}...`);
+    console.log(
+      `Attempting to describe non-existent node ${nonExistentNodeName}...`,
+    );
 
     // Use the new kubectl_describe method instead of describe_node
     const describeNodeResult = await client.request(
@@ -221,7 +232,7 @@ describe("kubernetes server operations", () => {
         },
       },
       // @ts-ignore - Ignoring type error for now to get tests running
-      asResponseSchema(z.any())
+      asResponseSchema(z.any()),
     );
 
     expect(describeNodeResult.content[0].type).toBe("text");
@@ -255,17 +266,17 @@ describe("kubernetes server operations", () => {
             arguments: {
               resourceType: "pods",
               namespace: "default",
-              output: "json"
+              output: "json",
             },
           },
         },
-        asResponseSchema(ListPodsResponseSchema)
+        asResponseSchema(ListPodsResponseSchema),
       );
 
       const podsResponse = JSON.parse(existingPods.content[0].text);
       const existingTestPods =
         podsResponse.items?.filter((pod: any) =>
-          pod.metadata?.name?.startsWith(podBaseName)
+          pod.metadata?.name?.startsWith(podBaseName),
         ) || [];
 
       // Terminate existing test pods if found
@@ -279,11 +290,11 @@ describe("kubernetes server operations", () => {
                 resourceType: "pod",
                 name: pod.metadata.name,
                 namespace: "default",
-                force: true
+                force: true,
               },
             },
           },
-          asResponseSchema(DeletePodResponseSchema)
+          asResponseSchema(DeletePodResponseSchema),
         );
 
         // Wait for pod to be fully terminated
@@ -301,11 +312,11 @@ describe("kubernetes server operations", () => {
                     resourceType: "pod",
                     name: pod.metadata.name,
                     namespace: "default",
-                    output: "json"
+                    output: "json",
                   },
                 },
               },
-              asResponseSchema(ListPodsResponseSchema)
+              asResponseSchema(ListPodsResponseSchema),
             );
             await sleep(500);
           } catch (error) {
@@ -324,8 +335,8 @@ describe("kubernetes server operations", () => {
           namespace: "default",
           labels: {
             app: "unit-test",
-            testcase: "pod-lifecycle"
-          }
+            testcase: "pod-lifecycle",
+          },
         },
         spec: {
           containers: [
@@ -335,12 +346,12 @@ describe("kubernetes server operations", () => {
               command: [
                 "/bin/sh",
                 "-c",
-                "echo Pod is running && sleep infinity"
-              ]
-            }
+                "echo Pod is running && sleep infinity",
+              ],
+            },
           ],
-          restartPolicy: "Never"
-        }
+          restartPolicy: "Never",
+        },
       };
 
       const createPodResult = await client.request(
@@ -352,16 +363,16 @@ describe("kubernetes server operations", () => {
               resourceType: "pod",
               name: podName,
               namespace: "default",
-              manifest: JSON.stringify(podManifest)
+              manifest: JSON.stringify(podManifest),
             },
           },
         },
-        asResponseSchema(CreatePodResponseSchema)
+        asResponseSchema(CreatePodResponseSchema),
       );
 
       expect(createPodResult.content[0].type).toBe("text");
       // Instead of parsing podName from create_pod response, we verify the pod exists
-      
+
       // Step 2: Wait for Running state (up to 60 seconds)
       let podRunning = false;
       const startTime = Date.now();
@@ -376,11 +387,11 @@ describe("kubernetes server operations", () => {
                 resourceType: "pod",
                 name: podName,
                 namespace: "default",
-                output: "json"
+                output: "json",
               },
             },
           },
-          asResponseSchema(ListPodsResponseSchema)
+          asResponseSchema(ListPodsResponseSchema),
         );
 
         const status = JSON.parse(podStatus.content[0].text);
@@ -397,11 +408,11 @@ describe("kubernetes server operations", () => {
                 arguments: {
                   resourceType: "pod",
                   name: podName,
-                  namespace: "default"
+                  namespace: "default",
                 },
               },
             },
-            asResponseSchema(KubectlResponseSchema)
+            asResponseSchema(KubectlResponseSchema),
           );
 
           expect(logsResult.content[0].type).toBe("text");
@@ -423,15 +434,17 @@ describe("kubernetes server operations", () => {
               resourceType: "pod",
               name: podName,
               namespace: "default",
-              force: true
+              force: true,
             },
           },
         },
-        asResponseSchema(DeletePodResponseSchema)
+        asResponseSchema(DeletePodResponseSchema),
       );
 
       expect(deletePodResult.content[0].type).toBe("text");
-      expect(deletePodResult.content[0].text).toContain(`pod "${podName}" force deleted`);
+      expect(deletePodResult.content[0].text).toContain(
+        `pod "${podName}" force deleted`,
+      );
 
       // Try to verify pod termination, but don't fail the test if we can't confirm it
       try {
@@ -449,16 +462,19 @@ describe("kubernetes server operations", () => {
                     resourceType: "pod",
                     name: podName,
                     namespace: "default",
-                    output: "json"
+                    output: "json",
                   },
                 },
               },
-              asResponseSchema(ListPodsResponseSchema)
+              asResponseSchema(ListPodsResponseSchema),
             );
 
             // Pod still exists, check if it's in Terminating state
             const status = JSON.parse(podStatus.content[0].text);
-            if (status.status?.phase === "Terminating" || status.metadata?.deletionTimestamp) {
+            if (
+              status.status?.phase === "Terminating" ||
+              status.metadata?.deletionTimestamp
+            ) {
               podTerminated = true;
               break;
             }
@@ -475,7 +491,7 @@ describe("kubernetes server operations", () => {
           console.log(`Pod ${podName} termination confirmed`);
         } else {
           console.log(
-            `Pod ${podName} termination could not be confirmed within timeout, but deletion was initiated`
+            `Pod ${podName} termination could not be confirmed within timeout, but deletion was initiated`,
           );
         }
       } catch (error) {
@@ -483,7 +499,7 @@ describe("kubernetes server operations", () => {
         console.log(`Error checking pod termination status: ${error}`);
       }
     },
-    { timeout: 120000 }
+    { timeout: 120000 },
   );
 
   /**
@@ -506,8 +522,8 @@ describe("kubernetes server operations", () => {
           labels: {
             app: "custom-test",
             testcase: "custom-pod-config",
-            env: "production"
-          }
+            env: "production",
+          },
         },
         spec: {
           containers: [
@@ -518,28 +534,28 @@ describe("kubernetes server operations", () => {
                 {
                   containerPort: 80,
                   name: "http",
-                  protocol: "TCP"
-                }
+                  protocol: "TCP",
+                },
               ],
               resources: {
                 limits: {
                   cpu: "200m",
-                  memory: "256Mi"
+                  memory: "256Mi",
                 },
                 requests: {
                   cpu: "100m",
-                  memory: "128Mi"
-                }
+                  memory: "128Mi",
+                },
               },
               env: [
                 {
                   name: "NODE_ENV",
-                  value: "production"
-                }
-              ]
-            }
-          ]
-        }
+                  value: "production",
+                },
+              ],
+            },
+          ],
+        },
       };
 
       const createPodResult = await client.request(
@@ -551,11 +567,11 @@ describe("kubernetes server operations", () => {
               resourceType: "pod",
               name: podName,
               namespace: namespace,
-              manifest: JSON.stringify(podManifest)
+              manifest: JSON.stringify(podManifest),
             },
           },
         },
-        asResponseSchema(KubectlResponseSchema)
+        asResponseSchema(KubectlResponseSchema),
       );
 
       expect(createPodResult.content[0].type).toBe("text");
@@ -579,11 +595,11 @@ describe("kubernetes server operations", () => {
                 resourceType: "pod",
                 name: podName,
                 namespace: namespace,
-                output: "json"
+                output: "json",
               },
             },
           },
-          asResponseSchema(KubectlResponseSchema)
+          asResponseSchema(KubectlResponseSchema),
         );
 
         const status = JSON.parse(podStatus.content[0].text);
@@ -605,11 +621,11 @@ describe("kubernetes server operations", () => {
             arguments: {
               resourceType: "pod",
               name: podName,
-              namespace: namespace
+              namespace: namespace,
             },
           },
         },
-        asResponseSchema(KubectlResponseSchema)
+        asResponseSchema(KubectlResponseSchema),
       );
 
       // Check that the description contains expected configuration values
@@ -634,11 +650,11 @@ describe("kubernetes server operations", () => {
               resourceType: "pod",
               name: podName,
               namespace: namespace,
-              output: "json"
+              output: "json",
             },
           },
         },
-        asResponseSchema(KubectlResponseSchema)
+        asResponseSchema(KubectlResponseSchema),
       );
 
       // Verify JSON details of the pod
@@ -661,17 +677,19 @@ describe("kubernetes server operations", () => {
               resourceType: "pod",
               name: podName,
               namespace: namespace,
-              force: true
+              force: true,
             },
           },
         },
-        asResponseSchema(KubectlResponseSchema)
+        asResponseSchema(KubectlResponseSchema),
       );
 
       expect(deletePodResult.content[0].type).toBe("text");
-      expect(deletePodResult.content[0].text).toContain(`pod "${podName}" force deleted`);
+      expect(deletePodResult.content[0].text).toContain(
+        `pod "${podName}" force deleted`,
+      );
     },
-    { timeout: 60000 }
+    { timeout: 60000 },
   );
 
   /**
@@ -694,21 +712,21 @@ describe("kubernetes server operations", () => {
             name: deploymentName,
             namespace: "default",
             labels: {
-              app: deploymentName
-            }
+              app: deploymentName,
+            },
           },
           spec: {
             replicas: 1,
             selector: {
               matchLabels: {
-                app: deploymentName
-              }
+                app: deploymentName,
+              },
             },
             template: {
               metadata: {
                 labels: {
-                  app: deploymentName
-                }
+                  app: deploymentName,
+                },
               },
               spec: {
                 containers: [
@@ -717,24 +735,24 @@ describe("kubernetes server operations", () => {
                     image: "nginx:1.14.2",
                     ports: [
                       {
-                        containerPort: 80
-                      }
+                        containerPort: 80,
+                      },
                     ],
                     resources: {
                       limits: {
                         cpu: "100m",
-                        memory: "128Mi"
+                        memory: "128Mi",
                       },
                       requests: {
                         cpu: "50m",
-                        memory: "64Mi"
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          }
+                        memory: "64Mi",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
         };
 
         const createDeploymentResult = await client.request(
@@ -746,11 +764,11 @@ describe("kubernetes server operations", () => {
                 resourceType: "deployment",
                 name: deploymentName,
                 namespace: "default",
-                manifest: JSON.stringify(deploymentManifest)
+                manifest: JSON.stringify(deploymentManifest),
               },
             },
           },
-          asResponseSchema(KubectlResponseSchema)
+          asResponseSchema(KubectlResponseSchema),
         );
 
         expect(createDeploymentResult.content[0].type).toBe("text");
@@ -773,11 +791,11 @@ describe("kubernetes server operations", () => {
                 resourceType: "deployment",
                 name: deploymentName,
                 namespace: "default",
-                output: "json"
+                output: "json",
               },
             },
           },
-          asResponseSchema(KubectlResponseSchema)
+          asResponseSchema(KubectlResponseSchema),
         );
 
         expect(getDeploymentResult.content[0].type).toBe("text");
@@ -785,7 +803,7 @@ describe("kubernetes server operations", () => {
         expect(deployment.metadata.name).toBe(deploymentName);
         expect(deployment.spec.replicas).toBe(1);
 
-        // Replace the old scale_deployment test with kubectl_scale 
+        // Replace the old scale_deployment test with kubectl_scale
         const scaleDeploymentResult = await client.request(
           {
             method: "tools/call",
@@ -795,18 +813,18 @@ describe("kubernetes server operations", () => {
                 name: deploymentName,
                 namespace: "default",
                 replicas: 2,
-                resourceType: "deployment"
+                resourceType: "deployment",
               },
             },
           },
-          asResponseSchema(ScaleDeploymentResponseSchema)
+          asResponseSchema(ScaleDeploymentResponseSchema),
         );
 
         expect(scaleDeploymentResult.content[0].success).toBe(true);
         expect(scaleDeploymentResult.content[0].message).toContain(
-          `Scaled deployment ${deploymentName} to 2 replicas`
+          `Scaled deployment ${deploymentName} to 2 replicas`,
         );
-        
+
         // Test scaling to a different number of replicas
         const kubectlScaleResult = await client.request(
           {
@@ -817,16 +835,16 @@ describe("kubernetes server operations", () => {
                 name: deploymentName,
                 namespace: "default",
                 replicas: 3,
-                resourceType: "deployment"
+                resourceType: "deployment",
               },
             },
           },
-          asResponseSchema(ScaleDeploymentResponseSchema)
+          asResponseSchema(ScaleDeploymentResponseSchema),
         );
 
         expect(kubectlScaleResult.content[0].success).toBe(true);
         expect(kubectlScaleResult.content[0].message).toContain(
-          `Scaled deployment ${deploymentName} to 3 replicas`
+          `Scaled deployment ${deploymentName} to 3 replicas`,
         );
 
         // Cleanup using kubectl_delete
@@ -838,17 +856,19 @@ describe("kubernetes server operations", () => {
               arguments: {
                 resourceType: "deployment",
                 name: deploymentName,
-                namespace: "default"
+                namespace: "default",
               },
             },
           },
-          asResponseSchema(KubectlResponseSchema)
+          asResponseSchema(KubectlResponseSchema),
         );
 
         expect(deleteDeploymentResult.content[0].type).toBe("text");
         // The text format can vary, just check if it mentions the deployment name and deleted
         const deleteText = deleteDeploymentResult.content[0].text;
-        expect(deleteText.includes(deploymentName) && deleteText.includes("deleted")).toBe(true);
+        expect(
+          deleteText.includes(deploymentName) && deleteText.includes("deleted"),
+        ).toBe(true);
 
         // Wait for cleanup
         await sleep(4000);
@@ -857,7 +877,7 @@ describe("kubernetes server operations", () => {
         attempts++;
         if (attempts === maxAttempts) {
           throw new Error(
-            `Failed after ${maxAttempts} attempts. Last error: ${e.message}`
+            `Failed after ${maxAttempts} attempts. Last error: ${e.message}`,
           );
         }
         await sleep(waitTime);

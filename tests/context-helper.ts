@@ -6,4 +6,4 @@ import { z } from "zod";
  */
 export function asResponseSchema<T extends z.ZodTypeAny>(schema: T) {
   return schema as unknown as z.ZodType<z.infer<T>, z.ZodTypeDef, object>;
-} 
+}

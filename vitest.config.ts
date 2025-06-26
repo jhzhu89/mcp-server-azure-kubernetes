@@ -14,10 +14,10 @@ class KubectlSequencer extends BaseSequencer {
 
     // Split into kubectl tests and other tests
     const kubectlTests = sortedFiles.filter((f) =>
-      f.moduleId.includes("kubectl.test.ts")
+      f.moduleId.includes("kubectl.test.ts"),
     );
     const otherTests = sortedFiles.filter(
-      (f) => !f.moduleId.includes("kubectl.test.ts")
+      (f) => !f.moduleId.includes("kubectl.test.ts"),
     );
 
     // Return other tests first, then kubectl tests

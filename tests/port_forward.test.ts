@@ -1,9 +1,7 @@
 import { expect, test, describe, beforeEach, afterEach } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import {
-  PortForwardResponseSchema,
-} from "../src/models/response-schemas.js";
+import { PortForwardResponseSchema } from "../src/models/response-schemas.js";
 import { KubectlResponseSchema } from "../src/models/kubectl-models.js";
 
 async function sleep(ms: number): Promise<void> {
@@ -36,7 +34,7 @@ describe("kubectl operations", () => {
         },
         {
           capabilities: {},
-        }
+        },
       );
       await client.connect(transport);
       await sleep(1000);
@@ -65,8 +63,8 @@ describe("kubectl operations", () => {
         namespace: testNamespace,
         labels: {
           app: "nginx",
-          test: "kubectl-test"
-        }
+          test: "kubectl-test",
+        },
       },
       spec: {
         containers: [
@@ -76,12 +74,12 @@ describe("kubectl operations", () => {
             ports: [
               {
                 containerPort: 80,
-                protocol: "TCP"
-              }
-            ]
-          }
-        ]
-      }
+                protocol: "TCP",
+              },
+            ],
+          },
+        ],
+      },
     };
 
     console.log(`Creating pod ${testPodName}...`);
@@ -94,22 +92,22 @@ describe("kubectl operations", () => {
             resourceType: "pod",
             name: testPodName,
             namespace: testNamespace,
-            manifest: JSON.stringify(podManifest)
+            manifest: JSON.stringify(podManifest),
           },
         },
       },
-      KubectlResponseSchema
+      KubectlResponseSchema,
     );
 
     expect(createPodResult.content[0].type).toBe("text");
-    
+
     // Verify the pod was created by checking for its name in the response
     const podData = createPodResult.content[0].text;
     expect(podData).toContain(`name: ${testPodName}`);
-    
+
     // Add a delay to ensure the pod is created
     await sleep(3000);
-    
+
     // List pods to verify our pod is included
     console.log(`Verifying pod ${testPodName} exists...`);
     const listPodsResult = await client.request(
@@ -120,32 +118,37 @@ describe("kubectl operations", () => {
           arguments: {
             resourceType: "pods",
             namespace: testNamespace,
-            output: "json"
+            output: "json",
           },
         },
       },
-      KubectlResponseSchema
+      KubectlResponseSchema,
     );
-    
+
     const podsList = JSON.parse(listPodsResult.content[0].text);
     console.log(`Found ${podsList.items?.length || 0} pods in the namespace`);
-    
-    // Defensively check for pod existence 
-    const ourPod = podsList.items?.find((pod: any) => 
-      (pod && pod.name === testPodName) || 
-      (pod && pod.metadata && pod.metadata.name === testPodName)
+
+    // Defensively check for pod existence
+    const ourPod = podsList.items?.find(
+      (pod: any) =>
+        (pod && pod.name === testPodName) ||
+        (pod && pod.metadata && pod.metadata.name === testPodName),
     );
-    
+
     // Verify our pod exists in the list
     if (!ourPod) {
       console.log("Pod not found in pod list, test will fail.");
-      console.log(`Pod names in namespace: ${podsList.items?.map((p: any) => p?.name || p?.metadata?.name).join(', ')}`);
+      console.log(
+        `Pod names in namespace: ${podsList.items?.map((p: any) => p?.name || p?.metadata?.name).join(", ")}`,
+      );
     } else {
-      console.log(`Pod ${testPodName} found with status: ${ourPod.status || ourPod.status?.phase || 'unknown'}`);
+      console.log(
+        `Pod ${testPodName} found with status: ${ourPod.status || ourPod.status?.phase || "unknown"}`,
+      );
     }
-    
+
     expect(ourPod).toBeDefined();
-    
+
     // Get pod details with kubectl_get
     console.log(`Getting pod ${testPodName} details...`);
     const getPodResult = await client.request(
@@ -157,19 +160,19 @@ describe("kubectl operations", () => {
             resourceType: "pod",
             name: testPodName,
             namespace: testNamespace,
-            output: "json"
+            output: "json",
           },
         },
       },
-      KubectlResponseSchema
+      KubectlResponseSchema,
     );
-    
+
     expect(getPodResult.content[0].type).toBe("text");
     const podDetails = JSON.parse(getPodResult.content[0].text);
-    
+
     // Verify pod details
     expect(podDetails.metadata?.name || podDetails.name).toBe(testPodName);
-    
+
     // Describe the pod with kubectl_describe
     console.log(`Describing pod ${testPodName}...`);
     const describePodResult = await client.request(
@@ -180,17 +183,17 @@ describe("kubectl operations", () => {
           arguments: {
             resourceType: "pod",
             name: testPodName,
-            namespace: testNamespace
+            namespace: testNamespace,
           },
         },
       },
-      KubectlResponseSchema
+      KubectlResponseSchema,
     );
-    
+
     expect(describePodResult.content[0].type).toBe("text");
     expect(describePodResult.content[0].text).toContain(testPodName);
     expect(describePodResult.content[0].text).toContain("nginx:latest");
-    
+
     // Cleanup - delete the pod
     console.log(`Deleting pod ${testPodName}...`);
     const deletePodResult = await client.request(
@@ -202,16 +205,18 @@ describe("kubectl operations", () => {
             resourceType: "pod",
             name: testPodName,
             namespace: testNamespace,
-            force: true
+            force: true,
           },
         },
       },
-      KubectlResponseSchema
+      KubectlResponseSchema,
     );
-    
+
     expect(deletePodResult.content[0].type).toBe("text");
-    expect(deletePodResult.content[0].text).toContain(`pod "${testPodName}" force deleted`);
-    
+    expect(deletePodResult.content[0].text).toContain(
+      `pod "${testPodName}" force deleted`,
+    );
+
     console.log("Test completed successfully.");
   }, 60000); // 60 second timeout
 });

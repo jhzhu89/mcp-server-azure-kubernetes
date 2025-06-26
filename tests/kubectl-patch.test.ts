@@ -19,7 +19,7 @@ async function sleep(ms: number): Promise<void> {
 async function retry<T>(
   operation: () => Promise<T>,
   maxRetries: number = 2,
-  delayMs: number = 1000
+  delayMs: number = 1000,
 ): Promise<T> {
   let lastError: Error | unknown;
 
@@ -29,7 +29,7 @@ async function retry<T>(
     } catch (error) {
       lastError = error;
       console.warn(
-        `Attempt ${attempt}/${maxRetries} failed. Retrying in ${delayMs}ms...`
+        `Attempt ${attempt}/${maxRetries} failed. Retrying in ${delayMs}ms...`,
       );
       await sleep(delayMs);
     }
@@ -41,7 +41,8 @@ async function retry<T>(
 describe("kubectl_patch command", () => {
   let transport: StdioClientTransport;
   let client: Client;
-  const configMapName = "patch-test-cm-" + Math.random().toString(36).substring(2, 7);
+  const configMapName =
+    "patch-test-cm-" + Math.random().toString(36).substring(2, 7);
 
   beforeEach(async () => {
     transport = new StdioClientTransport({
@@ -57,12 +58,12 @@ describe("kubectl_patch command", () => {
       },
       {
         capabilities: {},
-      }
+      },
     );
 
     await client.connect(transport);
     await sleep(1000);
-    
+
     // Create a configmap that we'll patch in the tests
     await retry(async () => {
       await client.request(
@@ -79,17 +80,17 @@ describe("kubectl_patch command", () => {
                 kind: "ConfigMap",
                 metadata: {
                   name: configMapName,
-                  namespace: "default"
+                  namespace: "default",
                 },
                 data: {
                   key1: "value1",
-                  key2: "value2"
-                }
-              })
+                  key2: "value2",
+                },
+              }),
             },
           },
         },
-        z.any()
+        z.any(),
       );
     });
   });
@@ -106,16 +107,16 @@ describe("kubectl_patch command", () => {
               arguments: {
                 resourceType: "configmap",
                 name: configMapName,
-                namespace: "default"
+                namespace: "default",
               },
             },
           },
-          z.any()
+          z.any(),
         );
       } catch (e) {
         // Ignore error if configmap doesn't exist
       }
-      
+
       await transport.close();
       await sleep(2000);
     } catch (e) {
@@ -125,7 +126,7 @@ describe("kubectl_patch command", () => {
 
   test("kubectl_patch can modify a configmap with strategic patch", async () => {
     // Patch the configmap with strategic merge patch
-    const patchResult = await client.request(
+    const patchResult = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -138,20 +139,22 @@ describe("kubectl_patch command", () => {
             patchData: {
               data: {
                 key1: "updated-value1",
-                key3: "value3"
-              }
-            }
+                key3: "value3",
+              },
+            },
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     expect(patchResult.content[0].type).toBe("text");
-    expect(patchResult.content[0].text).toContain(`configmap/${configMapName} patched`);
-    
+    expect(patchResult.content[0].text).toContain(
+      `configmap/${configMapName} patched`,
+    );
+
     // Verify the configmap was updated
-    const getResult = await client.request(
+    const getResult = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -160,22 +163,22 @@ describe("kubectl_patch command", () => {
             resourceType: "configmap",
             name: configMapName,
             namespace: "default",
-            output: "json"
+            output: "json",
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     const configMap = JSON.parse(getResult.content[0].text);
     expect(configMap.data.key1).toBe("updated-value1"); // Updated value
-    expect(configMap.data.key2).toBe("value2");         // Unchanged value
-    expect(configMap.data.key3).toBe("value3");         // New value
+    expect(configMap.data.key2).toBe("value2"); // Unchanged value
+    expect(configMap.data.key3).toBe("value3"); // New value
   });
 
   test("kubectl_patch can modify a configmap with merge patch", async () => {
     // Patch the configmap with JSON merge patch
-    const patchResult = await client.request(
+    const patchResult = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -187,21 +190,23 @@ describe("kubectl_patch command", () => {
             patchType: "merge",
             patchData: {
               data: {
-                key2: null,                 // Remove key2
-                key4: "value4"              // Add key4
-              }
-            }
+                key2: null, // Remove key2
+                key4: "value4", // Add key4
+              },
+            },
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     expect(patchResult.content[0].type).toBe("text");
-    expect(patchResult.content[0].text).toContain(`configmap/${configMapName} patched`);
-    
+    expect(patchResult.content[0].text).toContain(
+      `configmap/${configMapName} patched`,
+    );
+
     // Verify the configmap was updated
-    const getResult = await client.request(
+    const getResult = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -210,22 +215,22 @@ describe("kubectl_patch command", () => {
             resourceType: "configmap",
             name: configMapName,
             namespace: "default",
-            output: "json"
+            output: "json",
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     const configMap = JSON.parse(getResult.content[0].text);
-    expect(configMap.data.key1).toBe("value1");    // Unchanged
-    expect(configMap.data.key2).toBeUndefined();   // Removed
-    expect(configMap.data.key4).toBe("value4");    // Added
+    expect(configMap.data.key1).toBe("value1"); // Unchanged
+    expect(configMap.data.key2).toBeUndefined(); // Removed
+    expect(configMap.data.key4).toBe("value4"); // Added
   });
 
   test("kubectl_patch works with dry-run option", async () => {
     // Patch the configmap with dry-run option
-    const patchResult = await client.request(
+    const patchResult = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -237,21 +242,23 @@ describe("kubectl_patch command", () => {
             patchType: "strategic",
             patchData: {
               data: {
-                key1: "dry-run-value" 
-              }
+                key1: "dry-run-value",
+              },
             },
-            dryRun: true
+            dryRun: true,
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     expect(patchResult.content[0].type).toBe("text");
-    expect(patchResult.content[0].text).toContain(`configmap/${configMapName} patched`);
-    
+    expect(patchResult.content[0].text).toContain(
+      `configmap/${configMapName} patched`,
+    );
+
     // Verify the configmap was NOT updated
-    const getResult = await client.request(
+    const getResult = (await client.request(
       {
         method: "tools/call",
         params: {
@@ -260,20 +267,20 @@ describe("kubectl_patch command", () => {
             resourceType: "configmap",
             name: configMapName,
             namespace: "default",
-            output: "json"
+            output: "json",
           },
         },
       },
-      z.any()
-    ) as KubectlResponse;
-    
+      z.any(),
+    )) as KubectlResponse;
+
     const configMap = JSON.parse(getResult.content[0].text);
-    expect(configMap.data.key1).toBe("value1");    // Still has original value
+    expect(configMap.data.key1).toBe("value1"); // Still has original value
   });
 
   test("kubectl_patch handles errors gracefully", async () => {
     const nonExistentResource = "non-existent-resource-" + Date.now();
-    
+
     try {
       await client.request(
         {
@@ -286,15 +293,15 @@ describe("kubectl_patch command", () => {
               namespace: "default",
               patchData: {
                 data: {
-                  key1: "value1"
-                }
-              }
+                  key1: "value1",
+                },
+              },
             },
           },
         },
-        z.any()
+        z.any(),
       );
-      
+
       // If we get here, the test has failed
       expect(true).toBe(false); // This should not execute
     } catch (error: any) {
@@ -302,4 +309,4 @@ describe("kubectl_patch command", () => {
       expect(error.message).toContain("Failed to patch resource");
     }
   });
-}); 
+});

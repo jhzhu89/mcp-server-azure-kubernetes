@@ -5,7 +5,7 @@ export const KubectlResponseSchema = z.object({
     z.object({
       type: z.literal("text"),
       text: z.string(),
-    })
+    }),
   ),
 });
 

@@ -77,7 +77,7 @@ export async function kubectlList(
     allNamespaces?: boolean;
     labelSelector?: string;
     fieldSelector?: string;
-  }
+  },
 ) {
   try {
     const resourceType = input.resourceType.toLowerCase();
@@ -235,7 +235,7 @@ export async function kubectlList(
                   status: "not_found",
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -245,13 +245,13 @@ export async function kubectlList(
 
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to list resources: ${error.message}`
+        `Failed to list resources: ${error.message}`,
       );
     }
   } catch (error: any) {
     throw new McpError(
       ErrorCode.InternalError,
-      `Failed to execute kubectl list command: ${error.message}`
+      `Failed to execute kubectl list command: ${error.message}`,
     );
   }
 }
