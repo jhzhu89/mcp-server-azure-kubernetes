@@ -1,5 +1,5 @@
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { KubernetesManager } from "../types.js";
+import { KubernetesManager } from "../services/kubernetes-manager.js";
 
 export const listResources = async () => {
   return {

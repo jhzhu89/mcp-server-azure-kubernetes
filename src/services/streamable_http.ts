@@ -1,6 +1,9 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import express, { Request, Response } from "express";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { logger } from "../azure-authentication/index.js";
+
+const httpLogger = logger.child({ component: "http-server" });
 
 export function startStreamableHTTPServer(getServer: () => Server) {
   const app = express();
@@ -14,14 +17,21 @@ export function startStreamableHTTPServer(getServer: () => Server) {
           sessionIdGenerator: undefined,
         });
       res.on("close", () => {
-        console.log("Request closed");
+        httpLogger.debug("HTTP request closed");
         transport.close();
         server.close();
       });
       await server.connect(transport);
       await transport.handleRequest(req, res, req.body);
     } catch (error) {
-      console.error("Error handling MCP request:", error);
+      httpLogger.error(
+        {
+          error: error instanceof Error ? error.message : String(error),
+          url: req.url,
+          method: req.method,
+        },
+        "Error handling MCP request",
+      );
       if (!res.headersSent) {
         res.status(500).json({
           jsonrpc: "2.0",
@@ -36,7 +46,10 @@ export function startStreamableHTTPServer(getServer: () => Server) {
   });
 
   app.get("/mcp", async (req: Request, res: Response) => {
-    console.log("Received GET MCP request");
+    httpLogger.debug(
+      { method: "GET", url: req.url },
+      "Received GET MCP request (method not allowed)",
+    );
     res.writeHead(405).end(
       JSON.stringify({
         jsonrpc: "2.0",
@@ -50,7 +63,10 @@ export function startStreamableHTTPServer(getServer: () => Server) {
   });
 
   app.delete("/mcp", async (req: Request, res: Response) => {
-    console.log("Received DELETE MCP request");
+    httpLogger.debug(
+      { method: "DELETE", url: req.url },
+      "Received DELETE MCP request (method not allowed)",
+    );
     res.writeHead(405).end(
       JSON.stringify({
         jsonrpc: "2.0",
@@ -65,5 +81,5 @@ export function startStreamableHTTPServer(getServer: () => Server) {
 
   const port = process.env.PORT || 3000;
   app.listen(port);
-  console.log(`MCP Stateless Streamable HTTP Server listening on port ${port}`);
+  httpLogger.info({ port }, "MCP Streamable HTTP Server listening");
 }

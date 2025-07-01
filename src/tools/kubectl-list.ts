@@ -1,4 +1,3 @@
-import { KubernetesManager } from "../types.js";
 import { kubectlGet } from "./kubectl-get.js";
 import { execSync } from "child_process";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";

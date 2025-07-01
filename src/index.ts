@@ -26,12 +26,16 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { serverConfig } from "./config/server-config.js";
 import { cleanupSchema } from "./config/cleanup-config.js";
-import { startStreamableHTTPServer } from "./utils/streamable_http.js";
-import { loadMultiTenantConfig } from "./config/multi-tenant-config.js";
-import { MultiTenantKubernetesManager } from "./utils/multi-tenant-kubernetes-manager.js";
-import { AzureAuthManager } from "./auth/azure-token-manager.js";
-import { KubeconfigManager } from "./auth/kubeconfig-manager.js";
-import { ResourceId } from "./types/multi-tenant.js";
+import { startStreamableHTTPServer } from "./services/streamable_http.js";
+import {
+  createClientProviderWithMapper,
+  logger,
+  getAzureAuthConfig,
+} from "./azure-authentication/index.js";
+import { K8sClientFactory } from "./services/k8s-client-factory.js";
+import { K8sRequestMapper } from "./services/k8s-request-mapper.js";
+
+const serverLogger = logger.child({ component: "mcp-server" });
 import {
   startPortForward,
   PortForwardSchema,
@@ -107,10 +111,10 @@ const allTools = [
   kubectlGenericSchema,
 ];
 
-const config = loadMultiTenantConfig();
-const azureAuthManager = new AzureAuthManager(config);
-const kubeconfigManager = new KubeconfigManager(config, azureAuthManager);
-const multiTenantManager = new MultiTenantKubernetesManager(kubeconfigManager);
+const clientProvider = await createClientProviderWithMapper(
+  new K8sClientFactory(),
+  new K8sRequestMapper(),
+);
 
 function createServer(): Server {
   const server = new Server(
@@ -121,37 +125,13 @@ function createServer(): Server {
     serverConfig,
   );
 
-  async function createMultiTenantContext(
-    accessToken: string,
-    resourceId: ResourceId,
-  ) {
-    if (
-      !accessToken ||
-      !resourceId.subscriptionId ||
-      !resourceId.resourceGroup ||
-      !resourceId.clusterName
-    ) {
-      console.log("Validation failed - missing required parameters");
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        "Access token and Azure context parameters are required for multi-tenant operations",
-      );
-    }
+  async function getK8sManagerFromRequest(request: any) {
+    const k8sManager = await clientProvider.getAuthenticatedClient(request);
 
-    const userContext = await azureAuthManager.createUserContext(
-      accessToken,
-      resourceId.subscriptionId,
-    );
-    const k8sManager = await multiTenantManager.getTenantKubernetesManager(
-      userContext,
-      resourceId,
-    );
-    const kubeconfigPath = await multiTenantManager.getOrCreateTenantKubeconfig(
-      userContext,
-      resourceId,
-    );
-
-    return { k8sManager, kubeconfigPath };
+    return {
+      k8sManager,
+      kubeconfigPath: k8sManager.getKubeconfigPath(),
+    };
   }
 
   // Resources handlers
@@ -166,18 +146,7 @@ function createServer(): Server {
       };
       method: string;
     }) => {
-      const { arguments: input = {} } = request.params;
-      const accessToken = input.access_token;
-      const resourceId: ResourceId = {
-        subscriptionId: input.subscriptionId,
-        resourceGroup: input.resourceGroup,
-        clusterName: input.clusterName,
-      };
-
-      const { k8sManager } = await createMultiTenantContext(
-        accessToken,
-        resourceId,
-      );
+      const { k8sManager } = await getK8sManagerFromRequest(request);
 
       const requestWithParams = {
         params: {
@@ -208,19 +177,11 @@ function createServer(): Server {
       method: string;
     }) => {
       try {
-        const { name, arguments: input = {} } = request.params;
-        const accessToken = input.access_token;
+        const { name } = request.params;
 
-        const resourceId: ResourceId = {
-          subscriptionId: input.subscriptionId,
-          resourceGroup: input.resourceGroup,
-          clusterName: input.clusterName,
-        };
-
-        const { kubeconfigPath, k8sManager } = await createMultiTenantContext(
-          accessToken,
-          resourceId,
-        );
+        const { kubeconfigPath, k8sManager } =
+          await getK8sManagerFromRequest(request);
+        const input = request.params.arguments || {};
 
         if (name === "kubectl_get") {
           return await kubectlGet(
@@ -524,11 +485,11 @@ function createServer(): Server {
 // Start the server
 if (process.env.ENABLE_STREAMABLE_HTTP_TRANSPORT) {
   startStreamableHTTPServer(createServer);
-  console.log(`Streamable HTTP server started`);
+  serverLogger.info("Streamable HTTP server started");
 
   ["SIGINT", "SIGTERM"].forEach((signal) => {
     process.on(signal, async () => {
-      console.log(`Received ${signal}, shutting down...`);
+      serverLogger.info({ signal }, "Received shutdown signal");
       process.exit(0);
     });
   });
@@ -536,15 +497,19 @@ if (process.env.ENABLE_STREAMABLE_HTTP_TRANSPORT) {
   const server = createServer();
   const transport = new StdioServerTransport();
 
-  console.error(
-    `Starting Kubernetes MCP server v${serverConfig.version}, handling commands...`,
+  serverLogger.info(
+    {
+      version: serverConfig.version,
+      transport: "stdio",
+    },
+    "Starting Kubernetes MCP server",
   );
 
   server.connect(transport);
 
   ["SIGINT", "SIGTERM"].forEach((signal) => {
     process.on(signal, async () => {
-      console.log(`Received ${signal}, shutting down...`);
+      serverLogger.info({ signal }, "Received shutdown signal, closing server");
       await server.close();
       process.exit(0);
     });

@@ -1,5 +1,5 @@
 import { spawn } from "child_process";
-import { KubernetesManager } from "../utils/kubernetes-manager.js";
+import { KubernetesManager } from "../services/kubernetes-manager.js";
 
 // Use spawn instead of exec because port-forward is a long-running process
 async function executeKubectlCommandAsync(

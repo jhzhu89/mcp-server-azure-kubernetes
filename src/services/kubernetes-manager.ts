@@ -1,5 +1,12 @@
 import * as k8s from "@kubernetes/client-node";
-import { ResourceTracker, PortForwardTracker, WatchTracker } from "../types.js";
+import {
+  PortForwardTracker,
+  ResourceTracker,
+  WatchTracker,
+} from "../models/resource-models.js";
+import { logger } from "../azure-authentication/index.js";
+
+const k8sLogger = logger.child({ component: "k8s-manager" });
 
 export class KubernetesManager {
   private resources: ResourceTracker[] = [];
@@ -40,8 +47,14 @@ export class KubernetesManager {
           resource.namespace,
         );
       } catch (error) {
-        process.stderr.write(
-          `Failed to delete ${resource.kind} ${resource.name}: ${error}\n`,
+        k8sLogger.error(
+          {
+            kind: resource.kind,
+            name: resource.name,
+            namespace: resource.namespace,
+            error: error instanceof Error ? error.message : String(error),
+          },
+          `Failed to delete ${resource.kind} ${resource.name}`,
         );
       }
     }
