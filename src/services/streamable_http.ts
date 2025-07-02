@@ -1,7 +1,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import express, { Request, Response } from "express";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { logger } from "../azure-authentication/index.js";
+import { logger } from "@jhzhu89/azure-client-pool";
 
 const httpLogger = logger.child({ component: "http-server" });
 

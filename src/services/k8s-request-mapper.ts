@@ -1,4 +1,4 @@
-import { McpRequestMapper } from "../azure-authentication/index.js";
+import { McpRequestMapper } from "@jhzhu89/azure-client-pool";
 
 interface K8sContext {
   subscriptionId: string;

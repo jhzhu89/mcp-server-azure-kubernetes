@@ -4,7 +4,7 @@ import {
   ResourceTracker,
   WatchTracker,
 } from "../models/resource-models.js";
-import { logger } from "../azure-authentication/index.js";
+import { logger } from "@jhzhu89/azure-client-pool";
 
 const k8sLogger = logger.child({ component: "k8s-manager" });
 

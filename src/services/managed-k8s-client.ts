@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as crypto from "crypto";
 import { KubernetesManager } from "./kubernetes-manager.js";
-import { logger } from "../azure-authentication/index.js";
+import { logger } from "@jhzhu89/azure-client-pool";
 
 const k8sFileLogger = logger.child({ component: "k8s-files" });
 
@@ -54,7 +54,9 @@ export class ManagedKubernetesClient extends KubernetesManager {
       return kubeconfigPath;
     }
 
-    const tempPath = `${kubeconfigPath}.tmp.${Date.now()}.${Math.random().toString(36)}`;
+    const tempPath = `${kubeconfigPath}.tmp.${Date.now()}.${Math.random().toString(
+      36,
+    )}`;
     fs.writeFileSync(tempPath, content, { mode: 0o600 });
     fs.renameSync(tempPath, kubeconfigPath);
 

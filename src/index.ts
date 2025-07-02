@@ -30,8 +30,7 @@ import { startStreamableHTTPServer } from "./services/streamable_http.js";
 import {
   createClientProviderWithMapper,
   logger,
-  getAzureAuthConfig,
-} from "./azure-authentication/index.js";
+} from "@jhzhu89/azure-client-pool";
 import { K8sClientFactory } from "./services/k8s-client-factory.js";
 import { K8sRequestMapper } from "./services/k8s-request-mapper.js";
 

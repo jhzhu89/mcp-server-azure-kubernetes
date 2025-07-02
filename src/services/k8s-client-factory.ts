@@ -2,7 +2,7 @@ import { ContainerServiceClient } from "@azure/arm-containerservice";
 import { TokenCredential } from "@azure/identity";
 import * as yaml from "yaml";
 import { ManagedKubernetesClient } from "./managed-k8s-client.js";
-import { ClientFactory } from "../azure-authentication/index.js";
+import { ClientFactory } from "@jhzhu89/azure-client-pool";
 
 interface K8sContext {
   subscriptionId: string;

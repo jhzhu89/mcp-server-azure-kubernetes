@@ -12,81 +12,91 @@
 [![Last Commit](https://img.shields.io/github/last-commit/jhzhu89/mcp-server-azure-kubernetes)](https://github.com/jhzhu89/mcp-server-azure-kubernetes/commits/main)
 [![smithery badge](https://smithery.ai/badge/mcp-server-azure-kubernetes)](https://smithery.ai/protocol/mcp-server-azure-kubernetes)
 
-MCP Server that can connect to Azure Kubernetes Service (AKS) clusters and manage them with Azure AD authentication. Supports Azure On-Behalf-Of (OBO) flow for secure multi-tenant access.
+MCP Server that connects to Azure Kubernetes Service (AKS) clusters with intelligent Azure AD authentication and caching. Powered by [`@jhzhu89/azure-client-pool`](https://github.com/jhzhu89/azure-client-pool) for multi-tenant access.
 
-> **Note**: This project is forked from [Flux159/mcp-server-kubernetes](https://github.com/Flux159/mcp-server-kubernetes) and has been customized for Azure-specific multi-tenant scenarios.
+> **Note**: This project is forked from [Flux159/mcp-server-kubernetes](https://github.com/Flux159/mcp-server-kubernetes) and enhanced for Azure scenarios.
 
 ## Usage
 
-### Azure Authentication Setup
+### Authentication Modes
 
-This server uses Azure AD authentication with On-Behalf-Of (OBO) flow for secure multi-tenant access to AKS clusters. The client must provide a valid Azure AD access token that has the configured Azure AD application as its audience.
+This server supports **dual authentication modes** powered by `@jhzhu89/azure-client-pool`:
+
+#### 🔧 **Application Mode** (Development)
+
+- **Best for**: Local development, single-user scenarios
+- **Authentication**: Uses Azure CLI credentials (`az login`)
+- **Setup**: Minimal configuration required
+- **Caching**: Simple global client cache
+
+#### 🏢 **Delegated Mode** (Production)
+
+- **Best for**: Multi-user web applications, production environments
+- **Authentication**: Azure AD On-Behalf-Of (OBO) flow with user JWT tokens
+- **Setup**: Requires Azure AD application with client secret/certificate
+- **Caching**: Per-user, per-tenant intelligent caching with automatic lifecycle management
+
+### Access Token Requirements
+
+When using **Delegated Mode**, clients must provide a valid Azure AD access token:
 
 #### Prerequisites
 
-1. **Azure AD Application Registration**: The server must be configured with an Azure AD application that has the following API permissions:
+1. **Azure AD Application Registration** with API permissions:
+
    - `https://management.azure.com/user_impersonation` (ARM API access)
    - `6dae42f8-4368-4678-94ff-3960e28e3630/user.read` (AKS dataplane access)
 
-2. **Client Access Token**: Clients must obtain an Azure AD access token with the server's Azure AD application as the audience.
+2. **Client Access Token**: Obtained with the server's Azure AD application as audience
 
-#### Authentication Flow
+#### Token Transmission
 
-1. **Client Token**: The client obtains an Azure AD access token with your server's Azure AD application as the audience
-2. **Token Transmission**: The client sends this token via HTTP header or tool call argument:
-   - HTTP Header: `Authorization: Bearer <access_token>`
-   - Tool Argument: Include `access_token` parameter in tool calls
-3. **OBO Flow**: The server performs On-Behalf-Of flow to exchange the client token for:
-   - ARM API access token (for managing AKS clusters)
-   - AKS dataplane access token (for kubectl operations)
-4. **AKS Access**: The server uses these exchanged tokens to perform operations on behalf of the user
+Clients send tokens via HTTP header or tool argument:
+
+- **HTTP Header**: `Authorization: Bearer <access_token>`
+- **Tool Argument**: Include `access_token` parameter in tool calls
 
 #### Example Tool Call with Access Token
-
-When calling tools, include the access token:
 
 ```json
 {
   "name": "list_pods",
   "arguments": {
     "namespace": "default",
+    "subscriptionId": "your-subscription-id",
+    "resourceGroup": "your-resource-group",
+    "clusterName": "your-aks-cluster",
     "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIs..."
   }
 }
 ```
 
-#### Important Security Note for Access Token Transmission
+#### Security Best Practices for Access Tokens
 
-**Passing access_token via tool arguments is a workaround** due to current limitations in Python MCP clients that prevent proper HTTP header transmission of user access tokens.
+**⚠️ Important**: Passing `access_token` via tool arguments is a workaround due to current limitations in Python MCP clients that prevent proper HTTP header transmission of user access tokens.
 
-**Recommended Implementation Pattern:**
+**Recommended Implementation**:
 
-When using frameworks like Semantic Kernel:
+- Use **function call filters** to inject `access_token` programmatically (Semantic Kernel approach - other frameworks may require different methods)
+- **Never** include `access_token` in tool schemas visible to AI models
+- **Never** allow AI models to handle or generate access tokens
 
-- Use **function call filters** to inject `access_token` into tool arguments
-- **Never** include `access_token` in the tool's input schema
-- **Never** allow the AI model to handle or generate access tokens
-- The filter should intercept calls and add the token programmatically
-
-Example with Semantic Kernel:
-
-```csharp
-// In your function call filter
-public async Task OnFunctionInvocationAsync(FunctionInvocationContext context)
-{
-    // Add user's access token to arguments (not visible to AI model)
-    context.Arguments["access_token"] = userAccessToken;
-
-    // Continue with the function call
-    await next(context);
-}
-```
-
-**Server-side handling:**
+**Server-side handling**:
 
 - Extract `access_token` from arguments in the server implementation
 - **Do not** declare `access_token` in the tool's input schema
 - Process the token for authentication but keep it hidden from the AI model
+
+**Example with Semantic Kernel**:
+
+```csharp
+public async Task OnFunctionInvocationAsync(FunctionInvocationContext context)
+{
+    // Inject user's access token (hidden from AI model)
+    context.Arguments["access_token"] = userAccessToken;
+    await next(context);
+}
+```
 
 This approach ensures that:
 
@@ -94,12 +104,24 @@ This approach ensures that:
 - Tokens are injected by the application layer, not the AI
 - The MCP server can still receive and use the tokens for authentication
 
-#### Security Considerations
+#### Intelligent Caching & Client Management
 
-- The client access token must have the server's Azure AD application as its audience
-- The server validates the token and extracts user context (tenant ID, user object ID)
-- All operations are performed on behalf of the authenticated user
-- The server maintains token caching for performance while respecting security boundaries
+The server automatically manages:
+
+- **Per-user client caching** with tenant isolation
+- **Token lifecycle management** with automatic refresh
+- **Multi-cluster support** - separate cached clients per AKS cluster
+- **Resource cleanup** with automatic disposal when cached clients expire
+
+### When to Use Which Mode?
+
+| Scenario            | Application Mode                | Delegated Mode                |
+| ------------------- | ------------------------------- | ----------------------------- |
+| Local development   | ✅ Simple setup with `az login` | ❌ Requires additional config |
+| Single-user tools   | ✅ Direct Azure CLI integration | ❌ Unnecessary complexity     |
+| Multi-user web apps | ❌ No user context              | ✅ Proper user delegation     |
+| Production APIs     | ❌ Requires Azure CLI on server | ✅ Standard OAuth2 flow       |
+| Multi-tenant SaaS   | ❌ Limited to CLI user          | ✅ Full multi-tenant support  |
 
 ## Usage with mcp-chat
 
@@ -111,9 +133,10 @@ npx mcp-chat --server "npx mcp-server-azure-kubernetes"
 
 ## Features
 
-- [x] Connect to Azure Kubernetes Service (AKS) clusters with Azure AD authentication
-- [x] Azure On-Behalf-Of (OBO) flow for secure multi-tenant access
-- [x] Unified kubectl API for managing resources
+- [x] **Dual Authentication Modes**: Application mode (development) and Delegated mode (production)
+- [x] **Intelligent Client Caching**: Per-user, per-tenant, per-cluster caching with automatic lifecycle management
+- [x] **Multi-tenant Support**: Secure tenant isolation and dynamic AKS cluster access
+- [x] **Unified kubectl API** for managing resources:
   - Get or list resources with `kubectl_get`
   - Describe resources with `kubectl_describe`
   - List resources with `kubectl_list`
@@ -128,17 +151,15 @@ npx mcp-chat --server "npx mcp-server-azure-kubernetes"
   - Update field(s) of a resource with `kubectl_patch`
   - Manage deployment rollouts with `kubectl_rollout`
   - Execute any kubectl command with `kubectl_generic`
-- [x] Advanced operations
-  - Scale deployments with `kubectl_scale` (replaces legacy `scale_deployment`)
+- [x] **Advanced operations**
+  - Scale deployments with `kubectl_scale`
   - Port forward to pods and services with `port_forward`
-  - Run Helm operations
-    - Install, upgrade, and uninstall charts
-    - Support for custom values, repositories, and versions
-- [x] Azure-specific features
-  - Multi-tenant token management with caching
-  - Tenant boundary validation
-  - ARM and AKS dataplane token acquisition
-- [x] Non-destructive mode for read and create/update-only access to clusters
+  - **Helm operations**: Install, upgrade, and uninstall charts with custom values and repositories
+- [x] **Azure-specific capabilities**
+  - Automatic ARM and AKS dataplane token management
+  - Smart client fingerprinting for efficient resource reuse
+  - Token caching with TTL and size limits
+- [x] **Non-destructive mode** for read and create/update-only access to clusters
 
 ## Local Development
 
@@ -214,9 +235,7 @@ For additional advanced features, see the [ADVANCED_README.md](ADVANCED_README.m
 
 ## Architecture
 
-See this [DeepWiki link](https://deepwiki.com/jhzhu89/mcp-server-azure-kubernetes) for a more indepth architecture overview created by Devin.
-
-This section describes the high-level architecture of the MCP Azure Kubernetes server.
+This server leverages [`@jhzhu89/azure-client-pool`](https://github.com/jhzhu89/azure-client-pool) for Azure authentication and client management.
 
 ### Request Flow
 
@@ -229,7 +248,8 @@ sequenceDiagram
     participant Server as MCP Server
     participant Filter as Tool Filter
     participant Handler as Request Handler
-    participant K8sManager as KubernetesManager
+    participant ClientPool as Azure Client Pool
+    participant K8sManager as Kubernetes Manager
     participant K8s as Kubernetes API
 
     Note over Transport: StdioTransport or<br>Streamable HTTP Transport
@@ -241,6 +261,11 @@ sequenceDiagram
         Server->>Filter: Filter available tools
         Note over Filter: Remove destructive tools<br>if in non-destructive mode
         Filter->>Handler: Route to tools handler
+
+        Handler->>ClientPool: Authentication Request (with access token)
+        Note over ClientPool: Dual auth modes:<br>Application or Delegated
+        ClientPool->>ClientPool: Smart caching lookup
+        ClientPool->>K8sManager: Return managed K8s client
 
         alt kubectl operations
             Handler->>K8sManager: Execute kubectl operation
@@ -258,6 +283,8 @@ sequenceDiagram
         Handler-->>Server: Return tool result
     else Resource Request
         Server->>Handler: Route to resource handler
+        Handler->>ClientPool: Get authenticated client
+        ClientPool->>K8sManager: Return managed client
         Handler->>K8sManager: Get resource data
         K8sManager->>K8s: Query API
         K8s-->>K8sManager: Return data
@@ -269,124 +296,135 @@ sequenceDiagram
     Transport-->>Client: Return Final Response
 ```
 
-See this [DeepWiki link](https://deepwiki.com/jhzhu89/mcp-server-azure-kubernetes) for a more indepth architecture overview created by Devin.
+### Authentication & Caching Architecture
 
-## Publishing new release
+- **Application Mode**: Uses Azure CLI credentials with simple global caching
+- **Delegated Mode**: Implements On-Behalf-Of flow with per-user, per-tenant caching
+- **Smart Caching**: Clients cached by user identity, tenant, and AKS cluster configuration
+- **Automatic Cleanup**: Cached clients automatically disposed when TTL expires
+- **Resource Isolation**: Strong tenant boundaries with separate cache namespaces
 
-Go to the [releases page](https://github.com/jhzhu89/mcp-server-azure-kubernetes/releases), click on "Draft New Release", click "Choose a tag" and create a new tag by typing out a new version number using "v{major}.{minor}.{patch}" semver format. Then, write a release title "Release v{major}.{minor}.{patch}" and description / changelog if necessary and click "Publish Release".
+## Publishing New Release
 
-This will create a new tag which will trigger a new release build via the cd.yml workflow. Once successful, the new release will be published to [npm](https://www.npmjs.com/package/mcp-server-azure-kubernetes). Note that there is no need to update the package.json version manually, as the workflow will automatically update the version number in the package.json file & push a commit to main.
+This project uses automated releases. Create a new release on the [releases page](https://github.com/jhzhu89/mcp-server-azure-kubernetes/releases) using semantic versioning (v{major}.{minor}.{patch}). The CI/CD pipeline will automatically build and publish to [npm](https://www.npmjs.com/package/mcp-server-azure-kubernetes).
 
 ## Not planned
 
 Adding clusters to kubectx.
 
-## Azure Setup Guide
+## Configuration
 
-### Step 1: Azure AD Application Registration
+### Application Mode (Development)
 
-1. **Register a new application** in Azure Active Directory:
-
-   ```bash
-   az ad app create --display-name "MCP Server Azure Kubernetes" \
-     --required-resource-accesses '[
-       {
-         "resourceAppId": "https://management.azure.com/",
-         "resourceAccess": [
-           {
-             "id": "user_impersonation",
-             "type": "Scope"
-           }
-         ]
-       },
-       {
-         "resourceAppId": "6dae42f8-4368-4678-94ff-3960e28e3630",
-         "resourceAccess": [
-           {
-             "id": "user.read",
-             "type": "Scope"
-           }
-         ]
-       }
-     ]'
-   ```
-
-2. **Create a client secret**:
-
-   ```bash
-   az ad app credential reset --id <app-id> --display-name "MCP Server Secret"
-   ```
-
-3. **Note down the following values**:
-   - Application (Client) ID
-   - Directory (Tenant) ID
-   - Client Secret Value
-
-### Step 2: Server Configuration
-
-Set the following environment variables for your server:
+Minimal setup using Azure CLI credentials:
 
 ```bash
-export AZURE_CLIENT_ID="your-application-client-id"
-export AZURE_CLIENT_SECRET="your-client-secret"
-export AZURE_TENANT_ID="your-tenant-id"
+# Login with Azure CLI
+az login
+
+# Set authentication mode (optional, defaults to 'application')
+export AZURE_AUTH_MODE=application
+export AZURE_CLIENT_ID=your-client-id
+export AZURE_TENANT_ID=your-tenant-id
+
+# Run the server
+npx mcp-server-azure-kubernetes
 ```
 
-### Step 3: Client Application Setup
+### Delegated Mode (Production)
 
-Your client application needs to be configured to obtain tokens for your server application:
+For multi-user production scenarios:
+
+```bash
+export AZURE_AUTH_MODE=delegated
+export AZURE_CLIENT_ID=your-client-id
+export AZURE_TENANT_ID=your-tenant-id
+export AZURE_CLIENT_SECRET=your-client-secret
+# OR use certificate-based authentication
+export AZURE_CLIENT_CERTIFICATE_PATH=/path/to/cert.pem
+```
+
+### Azure AD Application Setup
+
+#### 1. Register Application
+
+```bash
+az ad app create --display-name "MCP Server Azure Kubernetes" \
+  --required-resource-accesses '[
+    {
+      "resourceAppId": "https://management.azure.com/",
+      "resourceAccess": [
+        {
+          "id": "user_impersonation",
+          "type": "Scope"
+        }
+      ]
+    },
+    {
+      "resourceAppId": "6dae42f8-4368-4678-94ff-3960e28e3630",
+      "resourceAccess": [
+        {
+          "id": "user.read",
+          "type": "Scope"
+        }
+      ]
+    }
+  ]'
+```
+
+#### 2. Create Client Secret
+
+```bash
+az ad app credential reset --id <app-id> --display-name "MCP Server Secret"
+```
+
+#### 3. Configure Client Application
 
 ```javascript
 // Example using MSAL.js
-const msalConfig = {
-  auth: {
-    clientId: "your-client-app-id",
-    authority: "https://login.microsoftonline.com/your-tenant-id",
-  },
-};
-
 const tokenRequest = {
-  scopes: [`api://${serverAppId}/.default`], // Use your server's Application ID
+  scopes: [`api://${serverAppId}/.default`],
 };
 ```
 
-### Step 4: AKS Cluster Access
-
-Ensure your AKS cluster is configured for Azure AD integration and that users have appropriate RBAC permissions.
-
 ## What's Different in This Fork
 
-This fork of the original MCP Server Kubernetes has been customized specifically for Azure environments:
+This fork enhances the original MCP Server Kubernetes with **Azure capabilities** powered by `@jhzhu89/azure-client-pool`:
 
-### Key Changes:
+### Key Enhancements:
 
-1. **Cluster Access Model**:
-   - **Original**: Connects to a single, pre-configured Kubernetes cluster using kubeconfig
-   - **This Fork**: Dynamically accesses multiple AKS clusters based on user identity and permissions
-2. **Authentication Method**:
-   - **Original**: Uses traditional kubeconfig-based authentication (service accounts, certificates, tokens)
-   - **This Fork**: Uses Azure AD authentication with On-Behalf-Of (OBO) flow
-3. **Multi-tenant Architecture**:
-   - **Original**: Single-tenant - all users access the same cluster with same credentials
-   - **This Fork**: Multi-tenant - each user accesses their own AKS clusters based on Azure AD permissions
-4. **User Context**:
-   - **Original**: No user identity context - operates with fixed cluster credentials
-   - **This Fork**: Full user context with tenant isolation and proper boundary validation
-5. **Token Management**: Advanced Azure token caching and refresh mechanisms for ARM and AKS APIs
-6. **Security Model**: Enhanced JWT validation, user impersonation, and Azure RBAC integration
+#### **🔐 Advanced Authentication**
 
-### Why This Fork?
+- **Original**: Single kubeconfig-based authentication
+- **This Fork**: Dual-mode authentication (Application + Delegated) with Azure AD integration
 
-This fork adds **Azure-specific multi-tenant capabilities** to support enterprise AKS scenarios:
+#### **🏢 Multi-tenancy**
 
-- **Dynamic Cluster Access**: Users access their own AKS clusters based on Azure AD identity
-- **Per-User Authentication**: Each user's Azure AD token determines which clusters they can access
-- **Tenant Isolation**: Strong boundaries ensure users only see resources in their own Azure tenants
-- **Zero Pre-Configuration**: No need to pre-configure kubeconfig - everything is resolved at runtime
+- **Original**: Single-cluster, single-user access
+- **This Fork**: Dynamic multi-cluster access with per-user tenant isolation
 
-This enables enterprise scenarios such as:
+#### **⚡ Intelligent Client Management**
 
-- **Multi-Customer SaaS**: Each customer accesses only their own AKS clusters
-- **Enterprise Divisions**: Different business units with separate Azure tenants and AKS clusters
-- **Managed Service Providers**: Service providers managing multiple customer environments
-- **Development Teams**: Teams with separate dev/staging/prod environments across different subscriptions
+- **Original**: Static connection to pre-configured cluster
+- **This Fork**: Smart caching with automatic client lifecycle management
+
+#### **🎯 Zero Configuration**
+
+- **Original**: Requires kubeconfig setup and cluster pre-configuration
+- **This Fork**: Runtime cluster discovery based on user Azure AD permissions
+
+### Use Cases:
+
+- **🏢 Multi-Customer SaaS**: Each customer accesses only their AKS clusters
+- **🏛️ Business Divisions**: Separate business units with isolated Azure tenants
+- **🔧 Managed Service Providers**: Managing multiple customer environments
+- **👥 Development Teams**: Separate dev/staging/prod environments across subscriptions
+
+### Powered by Azure Client Pool
+
+This fork leverages [`@jhzhu89/azure-client-pool`](https://github.com/jhzhu89/azure-client-pool) for:
+
+- **Smart Caching**: Efficient client reuse with fingerprinting
+- **Token Management**: Automatic Azure AD token lifecycle handling
+- **Request Deduplication**: Prevents concurrent token requests
+- **Resource Cleanup**: Automatic disposal of cached resources
