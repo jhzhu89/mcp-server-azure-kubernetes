@@ -29,12 +29,12 @@ import { cleanupSchema } from "./config/cleanup-config.js";
 import { startStreamableHTTPServer } from "./services/streamable_http.js";
 import {
   createClientProviderWithMapper,
-  logger,
+  getLogger,
 } from "@jhzhu89/azure-client-pool";
 import { K8sClientFactory } from "./services/k8s-client-factory.js";
 import { K8sRequestMapper } from "./services/k8s-request-mapper.js";
 
-const serverLogger = logger.child({ component: "mcp-server" });
+const serverLogger = getLogger("mcp-server");
 import {
   startPortForward,
   PortForwardSchema,
@@ -488,7 +488,7 @@ if (process.env.ENABLE_STREAMABLE_HTTP_TRANSPORT) {
 
   ["SIGINT", "SIGTERM"].forEach((signal) => {
     process.on(signal, async () => {
-      serverLogger.info({ signal }, "Received shutdown signal");
+      serverLogger.info("Received shutdown signal", { signal });
       process.exit(0);
     });
   });
@@ -496,19 +496,16 @@ if (process.env.ENABLE_STREAMABLE_HTTP_TRANSPORT) {
   const server = createServer();
   const transport = new StdioServerTransport();
 
-  serverLogger.info(
-    {
-      version: serverConfig.version,
-      transport: "stdio",
-    },
-    "Starting Kubernetes MCP server",
-  );
+  serverLogger.info("Starting Kubernetes MCP server", {
+    version: serverConfig.version,
+    transport: "stdio",
+  });
 
   server.connect(transport);
 
   ["SIGINT", "SIGTERM"].forEach((signal) => {
     process.on(signal, async () => {
-      serverLogger.info({ signal }, "Received shutdown signal, closing server");
+      serverLogger.info("Received shutdown signal, closing server", { signal });
       await server.close();
       process.exit(0);
     });

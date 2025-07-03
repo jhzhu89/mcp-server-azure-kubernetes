@@ -4,9 +4,9 @@ import {
   ResourceTracker,
   WatchTracker,
 } from "../models/resource-models.js";
-import { logger } from "@jhzhu89/azure-client-pool";
+import { getLogger } from "@jhzhu89/azure-client-pool";
 
-const k8sLogger = logger.child({ component: "k8s-manager" });
+const k8sLogger = getLogger("k8s-manager");
 
 export class KubernetesManager {
   private resources: ResourceTracker[] = [];
@@ -47,15 +47,12 @@ export class KubernetesManager {
           resource.namespace,
         );
       } catch (error) {
-        k8sLogger.error(
-          {
-            kind: resource.kind,
-            name: resource.name,
-            namespace: resource.namespace,
-            error: error instanceof Error ? error.message : String(error),
-          },
-          `Failed to delete ${resource.kind} ${resource.name}`,
-        );
+        k8sLogger.error(`Failed to delete ${resource.kind} ${resource.name}`, {
+          kind: resource.kind,
+          name: resource.name,
+          namespace: resource.namespace,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
   }

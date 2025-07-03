@@ -1,9 +1,9 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import express, { Request, Response } from "express";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { logger } from "@jhzhu89/azure-client-pool";
+import { getLogger } from "@jhzhu89/azure-client-pool";
 
-const httpLogger = logger.child({ component: "http-server" });
+const httpLogger = getLogger("http-server");
 
 export function startStreamableHTTPServer(getServer: () => Server) {
   const app = express();
@@ -24,14 +24,11 @@ export function startStreamableHTTPServer(getServer: () => Server) {
       await server.connect(transport);
       await transport.handleRequest(req, res, req.body);
     } catch (error) {
-      httpLogger.error(
-        {
-          error: error instanceof Error ? error.message : String(error),
-          url: req.url,
-          method: req.method,
-        },
-        "Error handling MCP request",
-      );
+      httpLogger.error("Error handling MCP request", {
+        error: error instanceof Error ? error.message : String(error),
+        url: req.url,
+        method: req.method,
+      });
       if (!res.headersSent) {
         res.status(500).json({
           jsonrpc: "2.0",
@@ -46,10 +43,10 @@ export function startStreamableHTTPServer(getServer: () => Server) {
   });
 
   app.get("/mcp", async (req: Request, res: Response) => {
-    httpLogger.debug(
-      { method: "GET", url: req.url },
-      "Received GET MCP request (method not allowed)",
-    );
+    httpLogger.debug("Received GET MCP request (method not allowed)", {
+      method: "GET",
+      url: req.url,
+    });
     res.writeHead(405).end(
       JSON.stringify({
         jsonrpc: "2.0",
@@ -63,10 +60,10 @@ export function startStreamableHTTPServer(getServer: () => Server) {
   });
 
   app.delete("/mcp", async (req: Request, res: Response) => {
-    httpLogger.debug(
-      { method: "DELETE", url: req.url },
-      "Received DELETE MCP request (method not allowed)",
-    );
+    httpLogger.debug("Received DELETE MCP request (method not allowed)", {
+      method: "DELETE",
+      url: req.url,
+    });
     res.writeHead(405).end(
       JSON.stringify({
         jsonrpc: "2.0",
@@ -81,5 +78,5 @@ export function startStreamableHTTPServer(getServer: () => Server) {
 
   const port = process.env.PORT || 3000;
   app.listen(port);
-  httpLogger.info({ port }, "MCP Streamable HTTP Server listening");
+  httpLogger.info("MCP Streamable HTTP Server listening", { port });
 }

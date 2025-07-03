@@ -1,26 +1,25 @@
 import * as fs from "fs";
 import * as crypto from "crypto";
 import { KubernetesManager } from "./kubernetes-manager.js";
-import { logger } from "@jhzhu89/azure-client-pool";
+import { getLogger } from "@jhzhu89/azure-client-pool";
 
-const k8sFileLogger = logger.child({ component: "k8s-files" });
+const k8sFileLogger = getLogger("k8s-files");
 
 export class ManagedKubernetesClient extends KubernetesManager {
   private static cleanupRegistry = new FinalizationRegistry<string>(
     (kubeconfigPath) => {
       try {
         fs.unlinkSync(kubeconfigPath);
-        k8sFileLogger.debug(
-          { kubeconfigPath },
-          "FinalizationRegistry cleaned up kubeconfig file",
-        );
+        k8sFileLogger.debug("FinalizationRegistry cleaned up kubeconfig file", {
+          kubeconfigPath,
+        });
       } catch (error) {
         k8sFileLogger.warn(
+          "Failed to cleanup kubeconfig file in FinalizationRegistry",
           {
             kubeconfigPath,
             error: error instanceof Error ? error.message : String(error),
           },
-          "Failed to cleanup kubeconfig file in FinalizationRegistry",
         );
       }
     },
@@ -89,18 +88,14 @@ export class ManagedKubernetesClient extends KubernetesManager {
 
       fs.unlinkSync(this.kubeconfigPath);
 
-      k8sFileLogger.debug(
-        { kubeconfigPath: this.kubeconfigPath },
-        "Dispose cleaned up kubeconfig file",
-      );
+      k8sFileLogger.debug("Dispose cleaned up kubeconfig file", {
+        kubeconfigPath: this.kubeconfigPath,
+      });
     } catch (error) {
-      k8sFileLogger.error(
-        {
-          kubeconfigPath: this.kubeconfigPath,
-          error: error instanceof Error ? error.message : String(error),
-        },
-        "Error during dispose",
-      );
+      k8sFileLogger.error("Error during dispose", {
+        kubeconfigPath: this.kubeconfigPath,
+        error: error instanceof Error ? error.message : String(error),
+      });
       throw error;
     }
   }
