@@ -30,6 +30,8 @@ import { startStreamableHTTPServer } from "./services/streamable_http.js";
 import {
   createClientProviderWithMapper,
   getLogger,
+  AuthMode,
+  type AuthRequestFactory,
 } from "@jhzhu89/azure-client-pool";
 import { K8sClientFactory } from "./services/k8s-client-factory.js";
 import { K8sRequestMapper } from "./services/k8s-request-mapper.js";
@@ -110,9 +112,17 @@ const allTools = [
   kubectlGenericSchema,
 ];
 
-const clientProvider = await createClientProviderWithMapper(
+const createAuthRequest: AuthRequestFactory = (authData) => {
+  if (!authData.accessToken) {
+    throw new Error("Access token required for composite authentication");
+  }
+  return { mode: AuthMode.Composite, accessToken: authData.accessToken };
+};
+
+const { getClient } = await createClientProviderWithMapper(
   new K8sClientFactory(),
   new K8sRequestMapper(),
+  createAuthRequest,
 );
 
 function createServer(): Server {
@@ -125,7 +135,7 @@ function createServer(): Server {
   );
 
   async function getK8sManagerFromRequest(request: any) {
-    const k8sManager = await clientProvider.getAuthenticatedClient(request);
+    const k8sManager = await getClient(request);
 
     return {
       k8sManager,
