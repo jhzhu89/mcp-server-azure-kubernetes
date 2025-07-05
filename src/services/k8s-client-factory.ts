@@ -1,8 +1,16 @@
 import { ContainerServiceClient } from "@azure/arm-containerservice";
-import { TokenCredential } from "@azure/identity";
+import {
+  type ClientFactory,
+  type CredentialProvider,
+  CredentialType,
+} from "@jhzhu89/azure-client-pool";
 import * as yaml from "yaml";
 import { ManagedKubernetesClient } from "./managed-k8s-client.js";
-import { ClientFactory } from "@jhzhu89/azure-client-pool";
+import {
+  getKubeconfigCredentialType,
+  getAksTokenCredentialType,
+  type CredentialType as K8sCredentialType,
+} from "../config/k8s-auth-config.js";
 
 interface K8sContext {
   subscriptionId: string;
@@ -14,12 +22,15 @@ export class K8sClientFactory
   implements ClientFactory<ManagedKubernetesClient, K8sContext>
 {
   async createClient(
-    credential: TokenCredential,
+    credentialProvider: CredentialProvider,
     context: K8sContext,
   ): Promise<ManagedKubernetesClient> {
+    const kubeconfigCredType = getKubeconfigCredentialType();
+    const aksTokenCredType = getAksTokenCredentialType();
+
     const [baseKubeconfig, aksToken] = await Promise.all([
-      this.getBaseKubeconfig(credential, context),
-      this.getAksToken(credential),
+      this.getBaseKubeconfig(credentialProvider, context, kubeconfigCredType),
+      this.getAksToken(credentialProvider, aksTokenCredType),
     ]);
 
     const kubeconfigContent = this.injectAksToken(baseKubeconfig, aksToken);
@@ -32,9 +43,17 @@ export class K8sClientFactory
   }
 
   private async getBaseKubeconfig(
-    credential: TokenCredential,
+    credentialProvider: CredentialProvider,
     context: K8sContext,
+    credentialType: K8sCredentialType,
   ): Promise<string> {
+    const credType =
+      credentialType === "delegated"
+        ? CredentialType.Delegated
+        : CredentialType.Application;
+
+    const credential = await credentialProvider.getCredential(credType);
+
     const client = new ContainerServiceClient(
       credential,
       context.subscriptionId,
@@ -53,10 +72,24 @@ export class K8sClientFactory
     return this.parseKubeconfigData(kubeconfigData);
   }
 
-  private async getAksToken(credential: TokenCredential): Promise<string> {
-    const tokenResponse = await credential.getToken([
-      "6dae42f8-4368-4678-94ff-3960e28e3630/user.read",
-    ]);
+  private async getAksToken(
+    credentialProvider: CredentialProvider,
+    credentialType: K8sCredentialType,
+  ): Promise<string> {
+    const credType =
+      credentialType === "delegated"
+        ? CredentialType.Delegated
+        : CredentialType.Application;
+
+    const credential = await credentialProvider.getCredential(credType);
+
+    // Different credential types require different scope formats
+    const scopes =
+      credentialType === "delegated"
+        ? ["6dae42f8-4368-4678-94ff-3960e28e3630/user.read"] // OBO/Delegated format
+        : ["6dae42f8-4368-4678-94ff-3960e28e3630", "user.read"]; // CLI format
+
+    const tokenResponse = await credential.getToken(scopes);
 
     if (!tokenResponse) {
       throw new Error("Failed to acquire AKS token");
