@@ -29,11 +29,19 @@ export class ManagedKubernetesClient extends KubernetesManager {
   private disposed = false;
 
   constructor(kubeconfigContent: string) {
+    k8sFileLogger.debug("Creating ManagedKubernetesClient", {
+      contentLength: kubeconfigContent.length,
+    });
+
     const kubeconfigPath =
       ManagedKubernetesClient.createKubeconfigFile(kubeconfigContent);
     super(kubeconfigPath);
 
     this.kubeconfigPath = kubeconfigPath;
+
+    k8sFileLogger.debug("ManagedKubernetesClient created", {
+      kubeconfigPath: this.kubeconfigPath,
+    });
 
     ManagedKubernetesClient.cleanupRegistry.register(this, this.kubeconfigPath);
   }
@@ -47,17 +55,31 @@ export class ManagedKubernetesClient extends KubernetesManager {
 
     const kubeconfigPath = `/dev/shm/k8s-${hash}-${process.pid}.yaml`;
 
+    k8sFileLogger.debug("Creating kubeconfig file", {
+      kubeconfigPath,
+      contentLength: content.length,
+    });
+
     if (
       ManagedKubernetesClient.isValidKubeconfigFile(kubeconfigPath, content)
     ) {
+      k8sFileLogger.debug("Reusing existing kubeconfig file", {
+        kubeconfigPath,
+      });
       return kubeconfigPath;
     }
 
     const tempPath = `${kubeconfigPath}.tmp.${Date.now()}.${Math.random().toString(
       36,
     )}`;
+
     fs.writeFileSync(tempPath, content, { mode: 0o600 });
     fs.renameSync(tempPath, kubeconfigPath);
+
+    k8sFileLogger.debug("Kubeconfig file created", {
+      kubeconfigPath,
+      fileSize: fs.statSync(kubeconfigPath).size,
+    });
 
     return kubeconfigPath;
   }
@@ -69,12 +91,31 @@ export class ManagedKubernetesClient extends KubernetesManager {
     try {
       const stats = fs.statSync(path);
       if (!stats.isFile() || (stats.mode & 0o777) !== 0o600) {
+        k8sFileLogger.debug("File validation failed", {
+          path,
+          isFile: stats.isFile(),
+          mode: stats.mode & 0o777,
+        });
         return false;
       }
 
       const existingContent = fs.readFileSync(path, "utf-8");
-      return existingContent === expectedContent;
-    } catch {
+      const isContentMatch = existingContent === expectedContent;
+
+      if (!isContentMatch) {
+        k8sFileLogger.debug("Content mismatch", {
+          path,
+          existingLength: existingContent.length,
+          expectedLength: expectedContent.length,
+        });
+      }
+
+      return isContentMatch;
+    } catch (error) {
+      k8sFileLogger.debug("File validation error", {
+        path,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return false;
     }
   }
